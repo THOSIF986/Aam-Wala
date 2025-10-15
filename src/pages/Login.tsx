@@ -4,33 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { LogIn, Leaf } from "lucide-react";
+import { LogIn } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
+  const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "clerk">("admin");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API call
     try {
-      // Mock authentication
-      if (username && password) {
-        localStorage.setItem("user", JSON.stringify({ username, role }));
+      const success = login(userId, password);
+
+      if (success) {
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${username}!`,
+          description: "Welcome back!",
         });
         navigate("/");
       } else {
-        throw new Error("Please fill in all fields");
+        throw new Error("Invalid User ID or Password");
       }
     } catch (error) {
       toast({
@@ -68,13 +67,13 @@ const Login = () => {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-white">Username</Label>
+                <Label htmlFor="userId" className="text-white">User ID</Label>
                 <Input
-                  id="username"
+                  id="userId"
                   type="text"
-                  placeholder="Enter your username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your User ID"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
                   className="bg-white/20 border-white/30 text-white placeholder:text-white/60"
                   required
                 />
@@ -93,19 +92,6 @@ const Login = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-white">Role</Label>
-                <Select value={role} onValueChange={(value: "admin" | "clerk") => setRole(value)}>
-                  <SelectTrigger className="bg-white/20 border-white/30 text-white">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrator</SelectItem>
-                    <SelectItem value="clerk">Clerk</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <Button
                 type="submit"
                 className="w-full bg-white text-primary hover:bg-white/90 font-semibold"
@@ -117,7 +103,7 @@ const Login = () => {
 
             <div className="mt-6 text-center">
               <p className="text-xs text-white/70">
-                Demo Credentials: admin/admin or clerk/clerk
+                Default Admin ID: Aam-admin-1
               </p>
             </div>
           </CardContent>

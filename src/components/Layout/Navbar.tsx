@@ -1,20 +1,23 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface NavbarProps {
-  currentUser?: string;
-  userRole?: 'admin' | 'clerk';
-  onLogout?: () => void;
-}
-
-const Navbar = ({ currentUser = "Admin User", userRole = "admin", onLogout }: NavbarProps) => {
+const Navbar = () => {
   const location = useLocation();
-  const currentDate = new Date().toLocaleDateString('en-IN', { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
+  const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
+
+  const currentDate = new Date().toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   });
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <nav className="bg-gradient-hero shadow-card border-b border-border">
@@ -45,14 +48,14 @@ const Navbar = ({ currentUser = "Admin User", userRole = "admin", onLogout }: Na
             <div className="flex items-center space-x-2 bg-white/10 px-3 py-2 rounded-lg">
               <User className="h-4 w-4 text-white" />
               <div className="text-white">
-                <p className="text-sm font-medium">{currentUser}</p>
-                <p className="text-xs text-white/80 capitalize">{userRole}</p>
+                <p className="text-sm font-medium">{currentUser?.fullName || 'User'}</p>
+                <p className="text-xs text-white/80 capitalize">{currentUser?.role || 'guest'}</p>
               </div>
             </div>
             <Button
               variant="secondary"
               size="sm"
-              onClick={onLogout}
+              onClick={handleLogout}
               className="bg-white/20 hover:bg-white/30 text-white border-white/30"
             >
               <LogOut className="h-4 w-4" />

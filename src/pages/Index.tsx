@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/Layout/Navbar";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Tractor,
   Users,
@@ -20,6 +21,7 @@ import {
 const Index = () => {
   console.log('Index component loaded successfully');
   const { companySettings } = useCompanySettings();
+  const { currentUser, isAdmin } = useAuth();
   
   const cardData = [
     {
@@ -28,7 +30,7 @@ const Index = () => {
       icon: Tractor,
       link: "/new-farm",
       color: "bg-gradient-secondary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "New Agent",
@@ -36,7 +38,7 @@ const Index = () => {
       icon: UserCheck,
       link: "/new-agent",
       color: "bg-gradient-primary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "New Voucher",
@@ -44,7 +46,7 @@ const Index = () => {
       icon: Receipt,
       link: "/new-voucher",
       color: "bg-gradient-secondary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "New Bill",
@@ -52,7 +54,7 @@ const Index = () => {
       icon: DollarSign,
       link: "/new-bill",
       color: "bg-gradient-primary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "Voucher List",
@@ -60,7 +62,7 @@ const Index = () => {
       icon: List,
       link: "/voucher-list",
       color: "bg-gradient-secondary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "Sales List",
@@ -68,7 +70,7 @@ const Index = () => {
       icon: FileText,
       link: "/sale-bill-list",
       color: "bg-gradient-primary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "Farmer Ledgers",
@@ -76,7 +78,7 @@ const Index = () => {
       icon: BookOpen,
       link: "/farm-list",
       color: "bg-gradient-secondary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "Agent Ledgers",
@@ -84,7 +86,7 @@ const Index = () => {
       icon: Wallet,
       link: "/agent-list",
       color: "bg-gradient-primary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "Farm List",
@@ -92,7 +94,7 @@ const Index = () => {
       icon: Tractor,
       link: "/farm-list",
       color: "bg-gradient-secondary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "Agent List",
@@ -100,7 +102,7 @@ const Index = () => {
       icon: Users,
       link: "/agent-list",
       color: "bg-gradient-primary",
-      role: ["admin", "clerk"]
+      role: ["admin", "writer"]
     },
     {
       title: "Reports",
@@ -108,7 +110,7 @@ const Index = () => {
       icon: TrendingUp,
       link: "/reports",
       color: "bg-gradient-secondary",
-      role: ["admin", "clerk"]
+      role: ["admin"]
     },
     {
       title: "Settings",
@@ -128,11 +130,8 @@ const Index = () => {
     }
   ];
 
-  // Simulate current user role - in real app this would come from auth context
-  const currentUserRole = "admin";
-
-  const filteredCards = cardData.filter(card => 
-    card.role.includes(currentUserRole)
+  const filteredCards = cardData.filter(card =>
+    card.role.includes(currentUser?.role || 'writer')
   );
 
   return (
