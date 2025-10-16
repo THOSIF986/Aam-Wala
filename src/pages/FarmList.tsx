@@ -4,19 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Navbar from "@/components/Layout/Navbar";
 import { Eye, Edit, Trash2, Tractor, BookOpen, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Farm } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 const FarmList = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Farm data - will be populated from API
   const [farms, setFarms] = useState<Farm[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<Farm | null>(null);
 
   // Fetch farms from Supabase
   useEffect(() => {
@@ -39,9 +46,46 @@ const FarmList = () => {
     fetchFarms();
   }, []);
 
-  const handleEdit = (id: string) => {
-    // In real app, navigate to edit farm page
-    console.log("Edit farm:", id);
+  const handleEdit = (farm: Farm) => {
+    setEditForm(farm);
+    setIsEditOpen(true);
+  };
+
+  const handleUpdateFarm = async () => {
+    if (!editForm) return;
+
+    try {
+      const { error } = await supabase
+        .from('farms')
+        .update({
+          owner_name: editForm.owner_name,
+          area: editForm.area,
+          price: editForm.price,
+          village: editForm.village,
+          taluka: editForm.taluka,
+          district: editForm.district,
+          phone: editForm.phone,
+          status: editForm.status,
+        })
+        .eq('id', editForm.id);
+
+      if (error) throw error;
+
+      setFarms(prev => prev.map(f => f.id === editForm.id ? editForm : f));
+      setIsEditOpen(false);
+      setEditForm(null);
+      toast({
+        title: "Farm Updated",
+        description: "Farm details have been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating farm:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update farm. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDelete = async (id: string, farmId: string) => {
@@ -180,7 +224,7 @@ const FarmList = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleEdit(farm.id)}
+                              onClick={() => handleEdit(farm)}
                               className="h-8 w-8 p-0"
                               title="Edit Farm"
                             >
@@ -326,7 +370,7 @@ const FarmList = () => {
                 <Button
                   onClick={() => {
                     setIsViewOpen(false);
-                    handleEdit(selectedFarm.id);
+                    handleEdit(selectedFarm);
                   }}
                   variant="outline"
                   className="w-full"
@@ -334,6 +378,100 @@ const FarmList = () => {
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Farm
                 </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Edit Farm Sheet */}
+      <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Edit Farm Details</SheetTitle>
+          </SheetHeader>
+          {editForm && (
+            <div className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-owner">Owner Name</Label>
+                <Input
+                  id="edit-owner"
+                  value={editForm.owner_name}
+                  onChange={(e) => setEditForm({ ...editForm, owner_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phone">Phone</Label>
+                <Input
+                  id="edit-phone"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-area">Area (acres)</Label>
+                  <Input
+                    id="edit-area"
+                    type="number"
+                    value={editForm.area}
+                    onChange={(e) => setEditForm({ ...editForm, area: parseFloat(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-price">Lease Price (₹)</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    value={editForm.price}
+                    onChange={(e) => setEditForm({ ...editForm, price: parseFloat(e.target.value) })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-village">Village</Label>
+                <Input
+                  id="edit-village"
+                  value={editForm.village}
+                  onChange={(e) => setEditForm({ ...editForm, village: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-taluka">Taluka</Label>
+                  <Input
+                    id="edit-taluka"
+                    value={editForm.taluka}
+                    onChange={(e) => setEditForm({ ...editForm, taluka: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-district">District</Label>
+                  <Input
+                    id="edit-district"
+                    value={editForm.district}
+                    onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status</Label>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(value) => setEditForm({ ...editForm, status: value as 'active' | 'inactive' })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button onClick={handleUpdateFarm} className="flex-1">Save Changes</Button>
+                <Button onClick={() => setIsEditOpen(false)} variant="outline" className="flex-1">Cancel</Button>
               </div>
             </div>
           )}

@@ -3,8 +3,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import Navbar from "@/components/Layout/Navbar";
-import { Eye, Edit, Trash2, UserCheck, Plus, BookOpen, ArrowLeft } from "lucide-react";
+import { Eye, Edit, Trash2, UserCheck, BookOpen, ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Agent } from "@/lib/supabase";
 
@@ -14,6 +15,8 @@ const AgentList = () => {
   // Agent data - will be populated from API
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
+  const [isViewOpen, setIsViewOpen] = useState(false);
 
   // Fetch agents from Supabase
   useEffect(() => {
@@ -82,13 +85,6 @@ const AgentList = () => {
               <p className="text-muted-foreground">Manage all business agents and partners</p>
             </div>
           </div>
-          <Button
-            onClick={() => navigate("/new-agent")}
-            className="bg-gradient-primary hover:opacity-90"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Agent
-          </Button>
         </div>
 
         {/* Summary Cards */}
@@ -136,11 +132,6 @@ const AgentList = () => {
                     <TableHead>Agent ID</TableHead>
                     <TableHead>Company Name</TableHead>
                     <TableHead>Agent Name</TableHead>
-                    <TableHead>Mobile</TableHead>
-                    <TableHead>Guarantor</TableHead>
-                    <TableHead>Transactions</TableHead>
-                    <TableHead>Business Volume</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -151,25 +142,20 @@ const AgentList = () => {
                         <TableCell className="font-mono font-medium">{agent.agent_id}</TableCell>
                         <TableCell className="font-semibold">{agent.company_name}</TableCell>
                         <TableCell>{agent.agent_name}</TableCell>
-                        <TableCell className="font-mono">{agent.mobile}</TableCell>
-                        <TableCell>
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-accent text-accent-foreground">
-                            {agent.guarantor}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">0</TableCell>
-                        <TableCell>₹0</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            agent.status === 'active' 
-                              ? 'bg-success/20 text-success' 
-                              : 'bg-destructive/20 text-destructive'
-                          }`}>
-                            {agent.status === 'active' ? 'Active' : 'Inactive'}
-                          </span>
-                        </TableCell>
                         <TableCell>
                           <div className="flex justify-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedAgent(agent);
+                                setIsViewOpen(true);
+                              }}
+                              className="h-8 w-8 p-0"
+                              title="View Details"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
                             <Link to={`/agent-ledger/${agent.agent_id}`}>
                               <Button
                                 size="sm"
@@ -180,15 +166,6 @@ const AgentList = () => {
                                 <BookOpen className="h-4 w-4" />
                               </Button>
                             </Link>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(agent.id)}
-                              className="h-8 w-8 p-0"
-                              title="Edit Agent"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
                             <Button
                               size="sm"
                               variant="outline"
@@ -204,14 +181,14 @@ const AgentList = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
+                      <TableCell colSpan={4} className="text-center py-8">
                         <div className="text-muted-foreground">
                           {loading ? (
                             <p>Loading agents...</p>
                           ) : (
                             <>
                               <p className="mb-2">No agents registered yet</p>
-                              <p className="text-sm">Click "Add New Agent" to register your first business agent</p>
+                              <p className="text-sm">Go to home page to add a new agent</p>
                             </>
                           )}
                         </div>
@@ -224,6 +201,101 @@ const AgentList = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* View Agent Details Sheet */}
+      <Sheet open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Agent Details</SheetTitle>
+          </SheetHeader>
+          {selectedAgent && (
+            <div className="mt-6 space-y-6">
+              <div className="bg-accent/30 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Agent ID</p>
+                    <p className="font-mono font-bold text-lg">{selectedAgent.agent_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Status</p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                      selectedAgent.status === 'active'
+                        ? 'bg-success/20 text-success'
+                        : 'bg-destructive/20 text-destructive'
+                    }`}>
+                      {selectedAgent.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Company Details</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="text-sm text-muted-foreground">Company Name</span>
+                    <span className="font-semibold">{selectedAgent.company_name}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="text-sm text-muted-foreground">Agent Name</span>
+                    <span className="font-semibold">{selectedAgent.agent_name}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Contact Information</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="text-sm text-muted-foreground">Mobile</span>
+                    <span className="font-mono font-semibold">{selectedAgent.mobile}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="text-sm text-muted-foreground">Alternate Mobile</span>
+                    <span className="font-mono font-semibold">{selectedAgent.alternate_mobile || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="text-sm text-muted-foreground">Address</span>
+                    <span className="font-semibold text-right">{selectedAgent.address}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Guarantor Details</h3>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="text-sm text-muted-foreground">Guarantor Name</span>
+                    <span className="font-semibold">{selectedAgent.guarantor}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="text-sm text-muted-foreground">Guarantor Mobile</span>
+                    <span className="font-mono font-semibold">{selectedAgent.guarantor_mobile}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                    <span className="text-sm text-muted-foreground">Guarantor Village</span>
+                    <span className="font-semibold">{selectedAgent.guarantor_village}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  onClick={() => {
+                    setIsViewOpen(false);
+                    navigate(`/agent-ledger/${selectedAgent.agent_id}`);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  View Ledger
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
