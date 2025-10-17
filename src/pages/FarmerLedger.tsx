@@ -93,10 +93,141 @@ const FarmerLedger = () => {
 
   return (
     <div className="min-h-screen bg-background font-poppins">
-      <Navbar />
-      
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-start mb-8">
+      <style>{`
+        @media print {
+          /* Hide navbar and buttons */
+          nav, .no-print {
+            display: none !important;
+          }
+
+          /* Reset body styles for print */
+          body {
+            margin: 0;
+            padding: 20px;
+            background: white;
+          }
+
+          /* Clean layout for print */
+          .print-container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+          }
+
+          /* Farm details styling */
+          .print-farm-details {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+          }
+
+          .print-farm-details h2 {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #1f2937;
+          }
+
+          .print-farm-details .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+          }
+
+          .print-farm-details .detail-label {
+            font-weight: 600;
+            color: #6b7280;
+            font-size: 14px;
+          }
+
+          .print-farm-details .detail-value {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 14px;
+          }
+
+          /* Table styling */
+          .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+          }
+
+          .print-table th {
+            background-color: #f9fafb;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid #e5e7eb;
+            font-size: 14px;
+          }
+
+          .print-table th.text-right {
+            text-align: right;
+          }
+
+          .print-table td {
+            padding: 10px 12px;
+            border: 1px solid #e5e7eb;
+            font-size: 13px;
+          }
+
+          .print-table td.text-right {
+            text-align: right;
+          }
+
+          /* Summary row - horizontal layout */
+          .print-summary {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-top: 20px;
+          }
+
+          .print-summary > div {
+            text-align: center;
+            flex: 1;
+          }
+
+          .print-summary .summary-label {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 5px;
+          }
+
+          .print-summary .summary-value {
+            font-size: 18px;
+            font-weight: bold;
+          }
+
+          /* Remove shadows and backgrounds */
+          * {
+            box-shadow: none !important;
+          }
+
+          /* Page break control */
+          .print-table {
+            page-break-inside: auto;
+          }
+
+          .print-table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+        }
+      `}</style>
+
+      <div className="no-print">
+        <Navbar />
+      </div>
+
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 print-container">
+        <div className="flex justify-between items-start mb-8 no-print">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -130,9 +261,34 @@ const FarmerLedger = () => {
           </div>
         </div>
 
+        {/* Print-only Farm Details */}
+        <div className="print-farm-details hidden print:block">
+          <h2>Farm Details</h2>
+          <div className="detail-row">
+            <span className="detail-label">Owner Name:</span>
+            <span className="detail-value">{farm.owner_name}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Location:</span>
+            <span className="detail-value">{farm.location}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Area:</span>
+            <span className="detail-value">{farm.area} acres</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Crop Type:</span>
+            <span className="detail-value">{farm.crop_type || 'N/A'}</span>
+          </div>
+          <div className="detail-row">
+            <span className="detail-label">Guarantor:</span>
+            <span className="detail-value">{farm.guarantor || 'N/A'}</span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Left Side - Farm Details */}
-          <div className="lg:col-span-1">
+          {/* Left Side - Farm Details (Screen only) */}
+          <div className="lg:col-span-1 print:hidden">
             <Card className="shadow-card border-border/50 sticky top-8">
               <CardHeader>
                 <CardTitle className="text-secondary">Farm Details</CardTitle>
@@ -185,13 +341,13 @@ const FarmerLedger = () => {
 
           {/* Right Side - Ledger Table */}
           <div className="lg:col-span-3">
-            <Card className="shadow-card border-border/50">
-              <CardHeader>
+            <Card className="shadow-card border-border/50 print:shadow-none print:border-0">
+              <CardHeader className="print:hidden">
                 <CardTitle className="text-primary">Ledger Transactions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="print-table">
                     <TableHeader>
                       <TableRow className="bg-secondary/20">
                         <TableHead>Date</TableHead>
@@ -207,7 +363,7 @@ const FarmerLedger = () => {
                             <TableCell>{new Date(entry.date).toLocaleDateString('en-IN')}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${
+                                <span className={`w-2 h-2 rounded-full print:hidden ${
                                   entry.transaction_type === 'voucher' ? 'bg-destructive' : 'bg-success'
                                 }`}></span>
                                 {entry.description}
@@ -235,8 +391,8 @@ const FarmerLedger = () => {
                   </Table>
                 </div>
 
-                {/* Summary Row */}
-                <div className="bg-secondary/10 p-4 rounded-lg mt-6">
+                {/* Summary Row - Screen Version */}
+                <div className="bg-secondary/10 p-4 rounded-lg mt-6 print:hidden">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                     <div>
                       <p className="text-sm text-muted-foreground">Total Debit</p>
@@ -262,6 +418,26 @@ const FarmerLedger = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+
+        {/* Summary Row - Print Version (Horizontal) */}
+        <div className="print-summary hidden print:flex">
+          <div>
+            <div className="summary-label">Total Debit</div>
+            <div className="summary-value">₹{totalDebit.toLocaleString('en-IN')}</div>
+          </div>
+          <div>
+            <div className="summary-label">Total Credit</div>
+            <div className="summary-value">₹{totalCredit.toLocaleString('en-IN')}</div>
+          </div>
+          <div>
+            <div className="summary-label">Total Vouchers</div>
+            <div className="summary-value">{totalVouchers}</div>
+          </div>
+          <div>
+            <div className="summary-label">Total Bills</div>
+            <div className="summary-value">{totalBills}</div>
           </div>
         </div>
       </main>
