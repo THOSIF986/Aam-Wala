@@ -45,6 +45,16 @@ export interface Voucher {
   updated_at: string
 }
 
+export interface BillItem {
+  id: string
+  bill_id: string
+  product_variety: string
+  quantity: number
+  rate: number
+  total: number
+  created_at: string
+}
+
 export interface Bill {
   id: string
   bill_id: string
@@ -61,6 +71,7 @@ export interface Bill {
   net_payment: number
   created_at: string
   updated_at: string
+  bill_items?: BillItem[]
 }
 
 export interface CuttingSchedule {

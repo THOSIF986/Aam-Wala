@@ -28,22 +28,40 @@ const SaleBillList = () => {
           .from('bills')
           .select('*')
           .order('created_at', { ascending: false });
-        
+
         if (billsError) throw billsError;
-        
+
+        // Fetch bill items for each bill
+        const billsWithItems = await Promise.all(
+          (billsData || []).map(async (bill) => {
+            const { data: itemsData, error: itemsError } = await supabase
+              .from('bill_items')
+              .select('*')
+              .eq('bill_id', bill.bill_id)
+              .order('created_at', { ascending: true});
+
+            if (itemsError) console.error('Error fetching bill items:', itemsError);
+
+            return {
+              ...bill,
+              bill_items: itemsData || []
+            };
+          })
+        );
+
         const { data: farmsData, error: farmsError } = await supabase
           .from('farms')
           .select('farm_id, owner_name');
-        
+
         if (farmsError) throw farmsError;
-        
+
         const { data: agentsData, error: agentsError } = await supabase
           .from('agents')
           .select('agent_id, agent_name');
-        
+
         if (agentsError) throw agentsError;
-        
-        setBills(billsData || []);
+
+        setBills(billsWithItems);
         setFarms(farmsData || []);
         setAgents(agentsData || []);
       } catch (error) {
@@ -299,16 +317,42 @@ const SaleBillList = () => {
               {/* Financial Details */}
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Financial Details</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm text-muted-foreground">Quantity</span>
-                    <span className="font-semibold">{selectedBill.quantity} kg</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm text-muted-foreground">Rate per kg</span>
-                    <span className="font-semibold">₹{selectedBill.rate.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-primary/10 rounded border border-primary/20">
+                <div className="space-y-3">
+                  {/* Variety-wise breakdown */}
+                  {selectedBill.bill_items && selectedBill.bill_items.length > 0 ? (
+                    selectedBill.bill_items.map((item, index) => (
+                      <div key={item.id} className="space-y-2 p-3 bg-accent/20 rounded-lg border border-accent/30">
+                        <h4 className="font-semibold text-sm text-primary uppercase">Variety {index + 1}: {item.product_variety}</h4>
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Quantity</p>
+                            <p className="font-semibold">{item.quantity} kg</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Rate/kg</p>
+                            <p className="font-semibold">₹{item.rate.toLocaleString('en-IN')}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Total</p>
+                            <p className="font-semibold">₹{item.total.toLocaleString('en-IN')}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                        <span className="text-sm text-muted-foreground">Quantity</span>
+                        <span className="font-semibold">{selectedBill.quantity} kg</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
+                        <span className="text-sm text-muted-foreground">Rate per kg</span>
+                        <span className="font-semibold">₹{selectedBill.rate.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-center p-3 bg-primary/10 rounded border border-primary/20 mt-3">
                     <span className="font-medium">Total Amount</span>
                     <span className="font-bold text-lg">₹{selectedBill.total.toLocaleString('en-IN')}</span>
                   </div>
