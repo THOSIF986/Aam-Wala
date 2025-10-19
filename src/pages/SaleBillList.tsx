@@ -318,27 +318,40 @@ const SaleBillList = () => {
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Financial Details</h3>
                 <div className="space-y-3">
+                  {/* Total Varieties Summary */}
+                  {selectedBill.bill_items && selectedBill.bill_items.length > 0 && (
+                    <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <span className="font-semibold text-blue-900 dark:text-blue-100">Total Varieties Included</span>
+                      <span className="font-bold text-lg text-blue-900 dark:text-blue-100">{selectedBill.bill_items.length}</span>
+                    </div>
+                  )}
+
                   {/* Variety-wise breakdown */}
                   {selectedBill.bill_items && selectedBill.bill_items.length > 0 ? (
-                    selectedBill.bill_items.map((item, index) => (
-                      <div key={item.id} className="space-y-2 p-3 bg-accent/20 rounded-lg border border-accent/30">
-                        <h4 className="font-semibold text-sm text-primary uppercase">Variety {index + 1}: {item.product_variety}</h4>
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Quantity</p>
-                            <p className="font-semibold">{item.quantity} kg</p>
+                    <div className="space-y-3">
+                      {selectedBill.bill_items.map((item, index) => (
+                        <div key={item.id} className="space-y-3 p-4 bg-gradient-to-br from-accent/30 to-accent/10 rounded-lg border-2 border-accent/40">
+                          <div className="flex items-center justify-between border-b border-accent/30 pb-2">
+                            <h4 className="font-bold text-base text-primary">Variety {index + 1}</h4>
+                            <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-semibold">{item.product_variety}</span>
                           </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Rate/kg</p>
-                            <p className="font-semibold">₹{item.rate.toLocaleString('en-IN')}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Total</p>
-                            <p className="font-semibold">₹{item.total.toLocaleString('en-IN')}</p>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center p-2 bg-background/50 rounded">
+                              <span className="text-sm font-medium text-muted-foreground">Quantity</span>
+                              <span className="font-bold text-foreground">{item.quantity.toLocaleString('en-IN')} kg</span>
+                            </div>
+                            <div className="flex justify-between items-center p-2 bg-background/50 rounded">
+                              <span className="text-sm font-medium text-muted-foreground">Rate per kg</span>
+                              <span className="font-bold text-foreground">₹{item.rate.toLocaleString('en-IN')}</span>
+                            </div>
+                            <div className="flex justify-between items-center p-3 bg-primary/20 rounded-lg border border-primary/30">
+                              <span className="font-semibold text-primary">Variety Total Amount</span>
+                              <span className="font-bold text-lg text-primary">₹{item.total.toLocaleString('en-IN')}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
@@ -352,7 +365,9 @@ const SaleBillList = () => {
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center p-3 bg-primary/10 rounded border border-primary/20 mt-3">
+                  <div className="border-t-2 border-dashed border-muted-foreground/30 my-4"></div>
+
+                  <div className="flex justify-between items-center p-3 bg-primary/10 rounded border border-primary/20">
                     <span className="font-medium">Total Amount</span>
                     <span className="font-bold text-lg">₹{selectedBill.total.toLocaleString('en-IN')}</span>
                   </div>
