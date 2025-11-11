@@ -19,11 +19,11 @@ import {
 } from "lucide-react";
 
 const Index = () => {
-  console.log('Index component loaded successfully');
   const { companySettings } = useCompanySettings();
   const { currentUser, isAdmin } = useAuth();
   
-  const cardData = [
+  // menu items for dashboard
+  const menuItems = [
     {
       title: "New Farm",
       description: "Register a new mango farm",
@@ -130,8 +130,9 @@ const Index = () => {
     }
   ];
 
-  const filteredCards = cardData.filter(card =>
-    card.role.includes(currentUser?.role || 'writer')
+  // filter based on user role
+  const visibleItems = menuItems.filter(item =>
+    item.role.includes(currentUser?.role || 'writer')
   );
 
   return (
@@ -148,18 +149,18 @@ const Index = () => {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-          {filteredCards.map((card, index) => {
-            const Icon = card.icon;
+          {visibleItems.map((item, idx) => {
+            const Icon = item.icon;
             return (
-              <Link key={index} to={card.link} className="group">
+              <Link key={idx} to={item.link} className="group">
                 <Card className="h-full shadow-card hover:shadow-lg transition-all duration-300 group-hover:scale-105 border-border/50">
                   <CardContent className="p-6 text-center space-y-4">
-                    <div className={`w-16 h-16 mx-auto rounded-xl ${card.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`w-16 h-16 mx-auto rounded-xl ${item.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
                       <Icon className="h-8 w-8 text-white" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                        {card.title}
+                        {item.title}
                       </h3>
                     </div>
                   </CardContent>

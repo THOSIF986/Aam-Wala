@@ -11,11 +11,11 @@ interface CompanySettings {
 }
 
 const defaultSettings: CompanySettings = {
-  companyName: "Aam Wala Business Solutions",
-  address: "Market Yard, Pune, Maharashtra - 411037",
-  phone: "+91 9876543210",
-  email: "info@aamwala.com",
-  gst: "27ABCDE1234F1Z5",
+  companyName: "",
+  address: "",
+  phone: "",
+  email: "",
+  gst: "",
   currency: "INR",
   fiscalYearStart: "april"
 };

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,16 @@ import { supabase } from "@/lib/supabase";
 
 const NewFarm = () => {
   const navigate = useNavigate();
+  const [nextNumber, setNextNumber] = useState(1);
+  
+  // function to generate farm id
+  const generateFarmId = (num: number) => {
+    const year = new Date().getFullYear();
+    return `FARM-${year}-${String(num).padStart(3, '0')}`;
+  };
+  
   const [formData, setFormData] = useState({
-    farmId: `FARM-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000) + 1).padStart(3, '0')}`,
+    farmId: generateFarmId(1),
     ownerName: "",
     location: "",
     cropType: "Mango",
@@ -24,13 +32,38 @@ const NewFarm = () => {
     guarantor: ""
   });
 
+  // Fetch the next farm number on component mount
+  useEffect(() => {
+    const fetchNextNumber = async () => {
+      const year = new Date().getFullYear();
+      const { data } = await supabase
+        .from('farms')
+        .select('farm_id')
+        .like('farm_id', `FARM-${year}-%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (data && data.length > 0) {
+        // Extract number from farm_id (e.g., "FARM-2025-001" -> 1)
+        const lastId = data[0].farm_id;
+        const lastNum = parseInt(lastId.split('-')[2]) || 0;
+        const newNum = lastNum + 1;
+        setNextNumber(newNum);
+        setFormData(prev => ({ ...prev, farmId: generateFarmId(newNum) }));
+      }
+    };
+    
+    fetchNextNumber();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      // Calculate lease dates from current date + years
-      const startDate = new Date().toISOString().split('T')[0];
-      const endDate = new Date(new Date().setFullYear(new Date().getFullYear() + parseInt(formData.leaseYears))).toISOString().split('T')[0];
+      // calc lease dates from current date + years
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setFullYear(endDate.getFullYear() + parseInt(formData.leaseYears));
 
       const { error } = await supabase
         .from('farms')
@@ -40,8 +73,8 @@ const NewFarm = () => {
           location: formData.location,
           area: parseFloat(formData.area),
           price: parseFloat(formData.farmPrice),
-          lease_start_date: startDate,
-          lease_end_date: endDate,
+          lease_start_date: startDate.toISOString().split('T')[0],
+          lease_end_date: endDate.toISOString().split('T')[0],
           guarantor: formData.guarantor,
           crop_type: formData.cropType,
           status: 'active'
@@ -50,13 +83,15 @@ const NewFarm = () => {
       if (error) throw error;
       
       toast({
-        title: "Farm Registered Successfully",
-        description: `Farm ${formData.farmId} has been registered for ${formData.ownerName}`,
+        title: "Success!",
+        description: `Farm ${formData.farmId} registered for ${formData.ownerName}`,
       });
       
-      // Reset form instead of navigating
+      // reset form and increment number
+      const newNum = nextNumber + 1;
+      setNextNumber(newNum);
       setFormData({
-        farmId: `FARM-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000) + 1).padStart(3, '0')}`,
+        farmId: generateFarmId(newNum),
         ownerName: "",
         location: "",
         cropType: "Mango",

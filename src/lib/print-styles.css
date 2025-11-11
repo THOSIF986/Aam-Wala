@@ -1,0 +1,162 @@
+/* Standardized Print Styles for Aam Wala Application */
+@media print {
+  /* Hide all non-essential elements */
+  nav, 
+  .no-print, 
+  header, 
+  footer, 
+  button,
+  .actions-column,
+  .sidebar,
+  .mobile-menu,
+  .filter-controls {
+    display: none !important;
+  }
+  
+  /* Reset body styles for clean print */
+  body {
+    margin: 0;
+    padding: 20px;
+    background: white;
+    color: black;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+  }
+  
+  /* Main content container */
+  .print-container {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Print header */
+  .print-header {
+    text-align: center;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+  }
+  
+  .print-header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: black;
+  }
+  
+  .print-header p {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    color: black;
+  }
+  
+  /* Table styling for clean print with proper borders */
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  
+  .print-table th,
+  .print-table td {
+    padding: 8px 10px;
+    border: 1px solid #000;
+    text-align: left;
+    color: black;
+  }
+  
+  .print-table th {
+    background-color: #f0f0f0;
+    font-weight: bold;
+  }
+  
+  .print-table th.text-right,
+  .print-table td.text-right {
+    text-align: right;
+  }
+  
+  .print-table th.text-center,
+  .print-table td.text-center {
+    text-align: center;
+  }
+  
+  /* Summary sections with proper column formatting */
+  .print-summary {
+    display: flex;
+    justify-content: space-between;
+    padding: 15px;
+    border: 1px solid #000;
+    margin-top: 20px;
+    width: 100%;
+  }
+  
+  .print-summary > div {
+    text-align: center;
+    flex: 1;
+    border-right: 1px solid #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  
+  .print-summary > div:last-child {
+    border-right: none;
+  }
+  
+  .print-summary .summary-label {
+    font-size: 12px;
+    margin-bottom: 5px;
+    font-weight: normal;
+  }
+  
+  .print-summary .summary-value {
+    font-size: 16px;
+    font-weight: bold;
+  }
+  
+  /* Detail rows */
+  .print-detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #000;
+  }
+  
+  .print-detail-label {
+    font-weight: 600;
+  }
+  
+  .print-detail-value {
+    font-weight: normal;
+  }
+  
+  /* Remove all backgrounds and colors for clean black and white print */
+  * {
+    background: none !important;
+    box-shadow: none !important;
+    color: black !important;
+  }
+  
+  /* Page break control */
+  .print-table {
+    page-break-inside: auto;
+  }
+  
+  .print-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  /* Hide decorative elements */
+  .badge,
+  .tag,
+  .indicator,
+  .status-dot {
+    display: none !important;
+  }
+  
+  /* Ensure all text is black */
+  h1, h2, h3, h4, h5, h6, p, span, div {
+    color: black !important;
+  }
+}

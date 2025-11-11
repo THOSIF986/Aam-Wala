@@ -12,8 +12,16 @@ import { supabase } from "@/lib/supabase";
 
 const NewBill = () => {
   const navigate = useNavigate();
+  const [nextNumber, setNextNumber] = useState(1);
+  
+  // generate random bill id
+  const generateBillId = (num: number) => {
+    const year = new Date().getFullYear();
+    return `BILL-${year}-${String(num).padStart(3, '0')}`;
+  };
+  
   const [formData, setFormData] = useState({
-    billId: `BILL-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000) + 1).padStart(3, '0')}`,
+    billId: generateBillId(1),
     agent: "",
     farm: "",
     vehicle: "",
@@ -25,16 +33,40 @@ const NewBill = () => {
   });
 
   // State for varieties
-  const [varieties, setVarieties] = useState([
-    { id: 1, variety: "", quantity: "", rate: "", total: 0 }
-  ]);
+  const [varieties, setVarieties] = useState<Array<{id: number, variety: string, quantity: string, rate: string}>>([{
+    id: 1, variety: "", quantity: "", rate: ""
+  }]);
 
   // State for agents and farms data
   const [agents, setAgents] = useState([]);
   const [farms, setFarms] = useState([]);
 
+  // Fetch the next bill number on component mount
+  useEffect(() => {
+    const fetchNextNumber = async () => {
+      const year = new Date().getFullYear();
+      const { data } = await supabase
+        .from('bills')
+        .select('bill_id')
+        .like('bill_id', `BILL-${year}-%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (data && data.length > 0) {
+        const lastId = data[0].bill_id;
+        const lastNum = parseInt(lastId.split('-')[2]) || 0;
+        const newNum = lastNum + 1;
+        setNextNumber(newNum);
+        setFormData(prev => ({ ...prev, billId: generateBillId(newNum) }));
+      }
+    };
+    
+    fetchNextNumber();
+  }, []);
+
   // Fetch agents and farms on component mount
   useEffect(() => {
+    // load agents from db
     const fetchAgents = async () => {
       const { data } = await supabase
         .from('agents')
@@ -44,6 +76,7 @@ const NewBill = () => {
       setAgents(data || []);
     };
 
+    // load farms from db
     const fetchFarms = async () => {
       const { data } = await supabase
         .from('farms')
@@ -59,75 +92,94 @@ const NewBill = () => {
 
   // Calculate totals for varieties and overall bill
   useEffect(() => {
-    // Update individual variety totals
-    const updatedVarieties = varieties.map(variety => ({
-      ...variety,
-      total: (parseFloat(variety.quantity) || 0) * (parseFloat(variety.rate) || 0)
-    }));
+    // calc total from all varieties
+    const totalAmount = varieties.reduce((sum, variety) => {
+      const qty = parseFloat(variety.quantity) || 0;
+      const rt = parseFloat(variety.rate) || 0;
+      return sum + (qty * rt);
+    }, 0);
     
-    // Only update if totals have changed
-    if (JSON.stringify(updatedVarieties) !== JSON.stringify(varieties)) {
-      setVarieties(updatedVarieties);
-    }
-    
-    // Calculate overall totals
-    const totalAmount = updatedVarieties.reduce((sum, variety) => sum + variety.total, 0);
-    const unloadingAmount = parseFloat(formData.unloadingAmount) || 0;
-    const advance = parseFloat(formData.advance) || 0;
-    const netPayment = totalAmount - (unloadingAmount + advance);
+    const unloadingAmt = parseFloat(formData.unloadingAmount) || 0;
+    const advanceAmt = parseFloat(formData.advance) || 0;
+    const netPay = totalAmount - (unloadingAmt + advanceAmt);
 
     setFormData(prev => ({
       ...prev,
       total: totalAmount > 0 ? totalAmount.toString() : "",
-      netPayment: netPayment > 0 ? netPayment.toString() : ""
+      netPayment: netPay > 0 ? netPay.toString() : ""
     }));
   }, [varieties, formData.unloadingAmount, formData.advance]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate that at least one variety is filled
+    // check if at least one variety is filled
     const validVarieties = varieties.filter(v => v.variety && v.quantity && v.rate);
     if (validVarieties.length === 0) {
       toast({
         title: "Error",
-        description: "Please add at least one product variety with quantity and rate.",
+        description: "Please add at least one variety with quantity and rate.",
         variant: "destructive",
       });
       return;
     }
     
     try {
-      const totalQuantity = validVarieties.reduce((sum, v) => sum + parseFloat(v.quantity), 0);
-      const averageRate = parseFloat(formData.total) / totalQuantity;
+      const totalQty = validVarieties.reduce((sum, v) => sum + parseFloat(v.quantity), 0);
+      const avgRate = parseFloat(formData.total) / totalQty;
       
-      const { error } = await supabase
+      // First, insert the bill
+      const { data: billData, error: billError } = await supabase
         .from('bills')
         .insert([{
           bill_id: formData.billId,
           agent_id: formData.agent,
-          farm_id: formData.farm, // Now linked to farm as well
+          farm_id: formData.farm,
           vehicle_number: formData.vehicle,
           arrival_number: formData.arrivalNumber,
-          product_variety: JSON.stringify(validVarieties), // Store as JSON
+          product_variety: JSON.stringify(validVarieties),
           unloading_amount: parseFloat(formData.unloadingAmount) || 0,
           advance: parseFloat(formData.advance) || 0,
-          quantity: totalQuantity,
-          rate: averageRate,
+          quantity: totalQty,
+          rate: avgRate,
           total: parseFloat(formData.total),
           net_payment: parseFloat(formData.netPayment)
-        }]);
+        }])
+        .select();
 
-      if (error) throw error;
+      if (billError) throw billError;
+
+      // insert bill items for each variety
+      if (billData && billData.length > 0) {
+        const billItemsToInsert = validVarieties.map(variety => ({
+          bill_id: formData.billId,
+          product_variety: variety.variety,
+          quantity: parseFloat(variety.quantity),
+          rate: parseFloat(variety.rate),
+          total: parseFloat(variety.quantity) * parseFloat(variety.rate)
+        }));
+
+                const { error: itemsError } = await supabase
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .from('bill_items' as any)
+          .insert(billItemsToInsert);
+
+        if (itemsError) {
+          console.error('Error inserting bill items:', itemsError);
+          // bill is created so don't throw error here
+        }
+      }
       
       toast({
-        title: "Bill Created Successfully",
+        title: "Success!",
         description: `Bill ${formData.billId} has been created`,
       });
       
-      // Reset form but stay on the same page
+      // Reset form but stay on same page
+      const newNum = nextNumber + 1;
+      setNextNumber(newNum);
       setFormData({
-        billId: `BILL-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000) + 1).padStart(3, '0')}`,
+        billId: generateBillId(newNum),
         agent: "",
         farm: "",
         vehicle: "",
@@ -137,7 +189,7 @@ const NewBill = () => {
         arrivalNumber: "",
         netPayment: ""
       });
-      setVarieties([{ id: 1, variety: "", quantity: "", rate: "", total: 0 }]);
+      setVarieties([{ id: 1, variety: "", quantity: "", rate: "" }]);
     } catch (error) {
       console.error('Error creating bill:', error);
       toast({
@@ -165,7 +217,7 @@ const NewBill = () => {
 
   const addVariety = () => {
     const newId = Math.max(...varieties.map(v => v.id)) + 1;
-    setVarieties(prev => [...prev, { id: newId, variety: "", quantity: "", rate: "", total: 0 }]);
+    setVarieties(prev => [...prev, { id: newId, variety: "", quantity: "", rate: "" }]);
   };
 
   const removeVariety = (id: number) => {
@@ -390,7 +442,7 @@ const NewBill = () => {
                           <Label htmlFor={`total-${variety.id}`}>Total (₹)</Label>
                           <Input
                             id={`total-${variety.id}`}
-                            value={variety.total.toFixed(2)}
+                            value={((parseFloat(variety.quantity) || 0) * (parseFloat(variety.rate) || 0)).toFixed(2)}
                             disabled
                             className="bg-muted font-semibold text-primary"
                           />

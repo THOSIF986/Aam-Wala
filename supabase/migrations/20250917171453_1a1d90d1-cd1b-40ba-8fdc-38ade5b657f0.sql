@@ -1,4 +1,4 @@
--- Create helper function to auto-update updated_at
+ -- Create helper function to auto-update updated_at
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -279,4 +279,4 @@ BEGIN
   ) THEN
     CREATE POLICY "Allow all delete on ledger_entries" ON public.ledger_entries FOR DELETE USING (true);
   END IF;
-END$$;
+END$;

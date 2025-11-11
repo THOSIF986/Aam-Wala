@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +12,44 @@ import { supabase } from "@/lib/supabase";
 
 const NewAgent = () => {
   const navigate = useNavigate();
+  const [nextNumber, setNextNumber] = useState(1);
+  
+  // generate agent id helper
+  const generateAgentId = (num: number) => {
+    const year = new Date().getFullYear();
+    return `AGNT-${year}-${String(num).padStart(3, '0')}`;
+  };
+  
   const [formData, setFormData] = useState({
-    agentId: `AGNT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000) + 1).padStart(3, '0')}`,
+    agentId: generateAgentId(1),
     companyName: "",
     agentName: "",
     mobile: "",
     guarantor: ""
   });
+
+  // Fetch the next agent number on component mount
+  useEffect(() => {
+    const fetchNextNumber = async () => {
+      const year = new Date().getFullYear();
+      const { data } = await supabase
+        .from('agents')
+        .select('agent_id')
+        .like('agent_id', `AGNT-${year}-%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (data && data.length > 0) {
+        const lastId = data[0].agent_id;
+        const lastNum = parseInt(lastId.split('-')[2]) || 0;
+        const newNum = lastNum + 1;
+        setNextNumber(newNum);
+        setFormData(prev => ({ ...prev, agentId: generateAgentId(newNum) }));
+      }
+    };
+    
+    fetchNextNumber();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,13 +69,15 @@ const NewAgent = () => {
       if (error) throw error;
       
       toast({
-        title: "Agent Registered Successfully",
-        description: `Agent ${formData.agentId} has been registered for ${formData.companyName}`,
+        title: "Success!",
+        description: `Agent ${formData.agentId} registered for ${formData.companyName}`,
       });
       
-      // Reset form instead of navigating
+      // clear form and increment number
+      const newNum = nextNumber + 1;
+      setNextNumber(newNum);
       setFormData({
-        agentId: `AGNT-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000) + 1).padStart(3, '0')}`,
+        agentId: generateAgentId(newNum),
         companyName: "",
         agentName: "",
         mobile: "",

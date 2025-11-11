@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Navbar from "@/components/Layout/Navbar";
 import { 
   FileText, 
+  Download, 
   Printer, 
   BarChart3, 
   PieChart, 
@@ -115,6 +116,15 @@ const Reports = () => {
     });
   };
 
+  // Function to format currency for printing
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       {/* Print styles */}
@@ -158,13 +168,13 @@ const Reports = () => {
             padding: 10px 12px;
             border: 1px solid #000;
             text-align: left;
-            font-size: 12px;
-            color: black;
+            font-size: 13px;
+            color: #000;
           }
           
           .print-table th {
             background-color: #f0f0f0;
-            font-weight: bold;
+            font-weight: 600;
           }
           
           .print-table th.text-right,
@@ -185,31 +195,29 @@ const Reports = () => {
           * {
             box-shadow: none !important;
             background: none !important;
-            color: black !important;
-          }
-          
-          h1, h2, h3, h4 {
-            color: black !important;
+            color: #000 !important;
           }
           
           h1 {
             font-size: 24px;
             margin-bottom: 20px;
+            color: #000;
           }
           
           h4 {
             font-size: 18px;
             margin-top: 30px;
             margin-bottom: 15px;
+            color: #000;
           }
           
           .print-plain-text {
             background: none !important;
-            color: black !important;
+            color: #000 !important;
             padding: 0 !important;
             border-radius: 0 !important;
             font-weight: normal !important;
-            font-size: 12px !important;
+            font-size: 13px !important;
           }
           
           table {
@@ -221,19 +229,20 @@ const Reports = () => {
             page-break-after: auto;
           }
           
-          .print-header {
+          /* Print header */
+          .print-report-header {
             text-align: center;
             margin-bottom: 20px;
             border-bottom: 2px solid #000;
             padding-bottom: 10px;
           }
           
-          .print-header h1 {
+          .print-report-header h1 {
             margin: 0;
             font-size: 24px;
           }
           
-          .print-header p {
+          .print-report-header p {
             margin: 5px 0 0 0;
             font-size: 14px;
           }
@@ -248,9 +257,16 @@ const Reports = () => {
       
       {/* Print Header (only visible when printing) */}
       <div className="print-header">
-        <h1>{companySettings.companyName || 'Aam Wala Business'}</h1>
-        <p>Business Reports & Analytics</p>
-        <p>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+        <div className="print-title">{companySettings.companyName}</div>
+        <div className="print-subtitle">
+          {companySettings.address && `${companySettings.address} | `}
+          {companySettings.phone && `Phone: ${companySettings.phone} | `}
+          {companySettings.email && `Email: ${companySettings.email}`}
+        </div>
+        <div className="print-subtitle" style={{ marginTop: '10px', fontSize: '16px', fontWeight: 'bold' }}>
+          Business Reports & Analytics
+        </div>
+        <div className="print-subtitle">Generated on: {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
       </div>
       
       <div className="no-print">
@@ -385,6 +401,9 @@ const Reports = () => {
                       <Button size="sm" variant="outline" onClick={handlePrintReport} title="Print Report">
                         <Printer style={{ width: '14px', height: '14px' }} />
                       </Button>
+                      <Button size="sm" variant="outline" onClick={() => handleDownloadPDF(report.title)} title="Download PDF">
+                        <Download style={{ width: '14px', height: '14px' }} />
+                      </Button>
                     </div>
                   </div>
                 );
@@ -397,6 +416,12 @@ const Reports = () => {
         <div id="detailed-report-section" style={{ marginTop: '40px' }}>
           {selectedReport === 'Voucher Analysis' && (
             <Card className="report-content-printable">
+              {/* Print Header - Only visible when printing */}
+              <div className="print-report-header hidden print:block">
+                <h1>Voucher Analysis Report</h1>
+                <p>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+              </div>
+              
               <CardHeader>
                 <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Receipt style={{ width: '24px', height: '24px' }} />
@@ -409,9 +434,9 @@ const Reports = () => {
                 <div>
                   <h4 style={{ fontWeight: 'bold', marginBottom: '16px', fontSize: '18px' }}>Farm-wise Voucher Summary</h4>
                   <div style={{ overflowX: 'auto' }}>
-                    <table className="print-table">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
-                        <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
+                        <tr style={{ backgroundColor: '#f0f0f0', borderBottom: '2px solid #000' }}>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Farm ID</th>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Farmer Name</th>
                           <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Number of Vouchers</th>
@@ -426,11 +451,11 @@ const Reports = () => {
                           if (farmVouchers.length === 0) return null;
                           
                           return (
-                            <tr key={idx} style={{ borderBottom: '1px solid #e5e5e5' }}>
+                            <tr key={idx} style={{ borderBottom: '1px solid #000' }}>
                               <td style={{ padding: '12px', fontWeight: '600' }}>{farm.farm_id}</td>
                               <td style={{ padding: '12px' }}>{farm.owner_name}</td>
                               <td style={{ padding: '12px', textAlign: 'right' }}>{farmVouchers.length}</td>
-                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#8b5cf6' }}>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#000' }}>
                                 ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                             </tr>
@@ -445,9 +470,9 @@ const Reports = () => {
                 <div style={{ marginTop: '30px' }}>
                   <h4 style={{ fontWeight: 'bold', marginBottom: '16px', fontSize: '18px' }}>Agent-wise Voucher Summary</h4>
                   <div style={{ overflowX: 'auto' }}>
-                    <table className="print-table">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
-                        <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
+                        <tr style={{ backgroundColor: '#f0f0f0', borderBottom: '2px solid #000' }}>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Agent ID</th>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Agent Name</th>
                           <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Number of Vouchers</th>
@@ -462,11 +487,11 @@ const Reports = () => {
                           if (agentVouchers.length === 0) return null;
                           
                           return (
-                            <tr key={idx} style={{ borderBottom: '1px solid #e5e5e5' }}>
+                            <tr key={idx} style={{ borderBottom: '1px solid #000' }}>
                               <td style={{ padding: '12px', fontWeight: '600' }}>{agent.agent_id}</td>
                               <td style={{ padding: '12px' }}>{agent.agent_name}</td>
                               <td style={{ padding: '12px', textAlign: 'right' }}>{agentVouchers.length}</td>
-                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#8b5cf6' }}>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#000' }}>
                                 ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                             </tr>
@@ -491,6 +516,12 @@ const Reports = () => {
 
           {selectedReport === 'Bills Analysis' && (
             <Card className="report-content-printable">
+              {/* Print Header - Only visible when printing */}
+              <div className="print-report-header hidden print:block">
+                <h1>Bills Analysis Report</h1>
+                <p>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+              </div>
+              
               <CardHeader>
                 <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <FileText style={{ width: '24px', height: '24px' }} />
@@ -503,9 +534,9 @@ const Reports = () => {
                 <div>
                   <h4 style={{ fontWeight: 'bold', marginBottom: '16px', fontSize: '18px' }}>Farm-wise Bill Summary</h4>
                   <div style={{ overflowX: 'auto' }}>
-                    <table className="print-table">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
-                        <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
+                        <tr style={{ backgroundColor: '#f0f0f0', borderBottom: '2px solid #000' }}>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Farm ID</th>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Farmer Name</th>
                           <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Number of Bills</th>
@@ -520,11 +551,11 @@ const Reports = () => {
                           if (farmBills.length === 0) return null;
                           
                           return (
-                            <tr key={idx} style={{ borderBottom: '1px solid #e5e5e5' }}>
+                            <tr key={idx} style={{ borderBottom: '1px solid #000' }}>
                               <td style={{ padding: '12px', fontWeight: '600' }}>{farm.farm_id}</td>
                               <td style={{ padding: '12px' }}>{farm.owner_name}</td>
                               <td style={{ padding: '12px', textAlign: 'right' }}>{farmBills.length}</td>
-                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#000' }}>
                                 ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                             </tr>
@@ -539,9 +570,9 @@ const Reports = () => {
                 <div style={{ marginTop: '30px' }}>
                   <h4 style={{ fontWeight: 'bold', marginBottom: '16px', fontSize: '18px' }}>Agent-wise Bill Summary</h4>
                   <div style={{ overflowX: 'auto' }}>
-                    <table className="print-table">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
-                        <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
+                        <tr style={{ backgroundColor: '#f0f0f0', borderBottom: '2px solid #000' }}>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Agent ID</th>
                           <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Agent Name</th>
                           <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Number of Bills</th>
@@ -556,11 +587,11 @@ const Reports = () => {
                           if (agentBills.length === 0) return null;
                           
                           return (
-                            <tr key={idx} style={{ borderBottom: '1px solid #e5e5e5' }}>
+                            <tr key={idx} style={{ borderBottom: '1px solid #000' }}>
                               <td style={{ padding: '12px', fontWeight: '600' }}>{agent.agent_id}</td>
                               <td style={{ padding: '12px' }}>{agent.agent_name}</td>
                               <td style={{ padding: '12px', textAlign: 'right' }}>{agentBills.length}</td>
-                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>
+                              <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#000' }}>
                                 ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                               </td>
                             </tr>
@@ -585,349 +616,11 @@ const Reports = () => {
 
           {selectedReport === 'Farm Performance' && (
             <Card className="report-content-printable">
+              {/* Print Header - Only visible when printing */}
+              <div className="print-report-header hidden print:block">
+                <h1>Farm Performance Report</h1>
+                <p>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+              </div>
+              
               <CardHeader>
                 <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Tractor style={{ width: '24px', height: '24px' }} />
-                  Farm Performance Report - Detailed View
-                </CardTitle>
-                <CardDescription>Debit, Credit, and Balance for each farm</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="print-table">
-                    <thead>
-                      <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Farm ID</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Owner Name</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Location</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Total Debit (₹)</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Total Credit (₹)</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Balance (₹)</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {farms.map((farm, idx) => {
-                        // Get ledger entries for this farm
-                        const farmLedger = ledgerEntries.filter(entry => 
-                          entry.entity_type === 'farm' && entry.entity_id === farm.farm_id
-                        );
-                        
-                        // Calculate totals from ledger
-                        const totalDebit = farmLedger.reduce((sum, entry) => sum + (parseFloat(entry.debit) || 0), 0);
-                        const totalCredit = farmLedger.reduce((sum, entry) => sum + (parseFloat(entry.credit) || 0), 0);
-                        const balance = totalCredit - totalDebit;
-                        
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid #e5e5e5' }}>
-                            <td style={{ padding: '12px' }}>{farm.farm_id}</td>
-                            <td style={{ padding: '12px' }}>{farm.owner_name}</td>
-                            <td style={{ padding: '12px' }}>{farm.location || '-'}</td>
-                            <td style={{ padding: '12px', textAlign: 'right', color: '#dc2626', fontWeight: '600' }}>
-                              ₹{totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>
-                              ₹{totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ 
-                              padding: '12px', 
-                              textAlign: 'right', 
-                              fontWeight: 'bold',
-                              color: balance >= 0 ? '#16a34a' : '#dc2626'
-                            }}>
-                              ₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'center' }}>
-                              <span style={{
-                                padding: '4px 12px',
-                                borderRadius: '12px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                backgroundColor: farm.status === 'active' ? '#dcfce7' : '#fee2e2',
-                                color: farm.status === 'active' ? '#16a34a' : '#dc2626'
-                              }}>
-                                {farm.status || 'active'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold', borderTop: '2px solid #000' }}>
-                        <td colSpan={3} style={{ padding: '12px', textAlign: 'right' }}>GRAND TOTAL:</td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: '#dc2626' }}>
-                          ₹{ledgerEntries.filter(e => e.entity_type === 'farm').reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: '#16a34a' }}>
-                          ₹{ledgerEntries.filter(e => e.entity_type === 'farm').reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
-                          ₹{(ledgerEntries.filter(e => e.entity_type === 'farm').reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0) - ledgerEntries.filter(e => e.entity_type === 'farm').reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  <Button onClick={handlePrintReport}>
-                    <Printer style={{ width: '16px', height: '16px', marginRight: '8px' }} />
-                    Print Report
-                  </Button>
-                  <Button variant="outline" onClick={() => setSelectedReport(null)}>
-                    Close Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {selectedReport === 'Agent Performance' && (
-            <Card className="report-content-printable">
-              <CardHeader>
-                <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users style={{ width: '24px', height: '24px' }} />
-                  Agent Performance Report - Detailed View
-                </CardTitle>
-                <CardDescription>Debit, Credit, and Balance for each agent</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="print-table">
-                    <thead>
-                      <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Agent ID</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Company Name</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Total Debit (₹)</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Total Credit (₹)</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Balance (₹)</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {agents.map((agent, idx) => {
-                        // Get ledger entries for this agent
-                        const agentLedger = ledgerEntries.filter(entry => 
-                          entry.entity_type === 'agent' && entry.entity_id === agent.agent_id
-                        );
-                        
-                        // Calculate totals from ledger (debit and credit)
-                        const totalDebit = agentLedger.reduce((sum, entry) => sum + (parseFloat(entry.debit) || 0), 0);
-                        const totalCredit = agentLedger.reduce((sum, entry) => sum + (parseFloat(entry.credit) || 0), 0);
-                        
-                        // Balance = Debit - Credit (same as agent ledger calculation)
-                        const balance = totalDebit - totalCredit;
-                        
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid #e5e5e5' }}>
-                            <td style={{ padding: '12px' }}>{agent.agent_id}</td>
-                            <td style={{ padding: '12px' }}>{agent.company_name}</td>
-                            <td style={{ padding: '12px', textAlign: 'right', color: '#16a34a', fontWeight: '600' }}>
-                              ₹{totalDebit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'right', color: '#dc2626', fontWeight: '600' }}>
-                              ₹{totalCredit.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ 
-                              padding: '12px', 
-                              textAlign: 'right', 
-                              fontWeight: 'bold',
-                              color: balance >= 0 ? '#16a34a' : '#dc2626'
-                            }}>
-                              ₹{balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'center' }}>
-                              <span style={{
-                                padding: '4px 12px',
-                                borderRadius: '12px',
-                                fontSize: '12px',
-                                fontWeight: '600',
-                                backgroundColor: agent.status === 'active' ? '#dcfce7' : '#fee2e2',
-                                color: agent.status === 'active' ? '#16a34a' : '#dc2626'
-                              }}>
-                                {agent.status || 'active'}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold', borderTop: '2px solid #000' }}>
-                        <td colSpan={2} style={{ padding: '12px', textAlign: 'right' }}>GRAND TOTAL:</td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: '#16a34a' }}>
-                          ₹{ledgerEntries.filter(e => e.entity_type === 'agent').reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right', color: '#dc2626' }}>
-                          ₹{ledgerEntries.filter(e => e.entity_type === 'agent').reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>
-                          ₹{(ledgerEntries.filter(e => e.entity_type === 'agent').reduce((sum, e) => sum + (parseFloat(e.debit) || 0), 0) - ledgerEntries.filter(e => e.entity_type === 'agent').reduce((sum, e) => sum + (parseFloat(e.credit) || 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  <Button onClick={handlePrintReport}>
-                    <Printer style={{ width: '16px', height: '16px', marginRight: '8px' }} />
-                    Print Report
-                  </Button>
-                  <Button variant="outline" onClick={() => setSelectedReport(null)}>
-                    Close Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {selectedReport === 'Farm-wise Quantity Supply Report' && (
-            <Card className="report-content-printable">
-              <CardHeader>
-                <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Tractor style={{ width: '24px', height: '24px' }} />
-                  Farm-wise Quantity Supply Report
-                </CardTitle>
-                <CardDescription>Mango procurement and distribution - quantity received/supplied from each farm</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="print-table">
-                    <thead>
-                      <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Farm ID</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Owner Name</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Location</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Total Quantity (kg)</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Number of Bills</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {farms.map((farm, idx) => {
-                        // get all bills for this farm
-                        const farmBills = bills.filter(bill => bill.farm_id === farm.farm_id);
-                        
-                        // calc totals
-                        const totalQuantity = farmBills.reduce((sum, bill) => sum + parseFloat(bill.quantity || 0), 0);
-                        
-                        // only show farms with bills
-                        if (farmBills.length === 0) return null;
-                        
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid #e5e5e5' }}>
-                            <td style={{ padding: '12px', fontWeight: '600' }}>{farm.farm_id}</td>
-                            <td style={{ padding: '12px' }}>{farm.owner_name}</td>
-                            <td style={{ padding: '12px' }}>{farm.location || '-'}</td>
-                            <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2563eb' }}>
-                              {totalQuantity.toFixed(2)}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'right' }}>{farmBills.length}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold', borderTop: '2px solid #000' }}>
-                        <td colSpan={3} style={{ padding: '12px', textAlign: 'right' }}>GRAND TOTAL:</td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '16px', color: '#2563eb' }}>
-                          {bills.reduce((sum, b) => sum + parseFloat(b.quantity || 0), 0).toFixed(2)} kg
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '16px' }}>
-                          {bills.length}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  <Button onClick={handlePrintReport}>
-                    <Printer style={{ width: '16px', height: '16px', marginRight: '8px' }} />
-                    Print Report
-                  </Button>
-                  <Button variant="outline" onClick={() => setSelectedReport(null)}>
-                    Close Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {selectedReport === 'Agent-wise Quantity Distribution Report' && (
-            <Card className="report-content-printable">
-              <CardHeader>
-                <CardTitle style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Users style={{ width: '24px', height: '24px' }} />
-                  Agent-wise Quantity Distribution Report
-                </CardTitle>
-                <CardDescription>Quantity received/delivered by each agent within date range</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="print-table">
-                    <thead>
-                      <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Agent ID</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Agent Name</th>
-                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Company Name</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Total Quantity (kg)</th>
-                        <th style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold' }}>Number of Bills</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {agents.map((agent, idx) => {
-                        // get all bills for this agent
-                        const agentBills = bills.filter(bill => bill.agent_id === agent.agent_id);
-                        
-                        // calc totals
-                        const totalQuantity = agentBills.reduce((sum, bill) => sum + parseFloat(bill.quantity || 0), 0);
-                        
-                        // only show agents with bills
-                        if (agentBills.length === 0) return null;
-                        
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid #e5e5e5' }}>
-                            <td style={{ padding: '12px', fontWeight: '600' }}>{agent.agent_id}</td>
-                            <td style={{ padding: '12px' }}>{agent.agent_name}</td>
-                            <td style={{ padding: '12px' }}>{agent.company_name}</td>
-                            <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#2563eb' }}>
-                              {totalQuantity.toFixed(2)}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'right' }}>{agentBills.length}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold', borderTop: '2px solid #000' }}>
-                        <td colSpan={3} style={{ padding: '12px', textAlign: 'right' }}>GRAND TOTAL:</td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '16px', color: '#2563eb' }}>
-                          {bills.reduce((sum, b) => sum + parseFloat(b.quantity || 0), 0).toFixed(2)} kg
-                        </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '16px' }}>
-                          {bills.length}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                <div className="no-print" style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  <Button onClick={handlePrintReport}>
-                    <Printer style={{ width: '16px', height: '16px', marginRight: '8px' }} />
-                    Print Report
-                  </Button>
-                  <Button variant="outline" onClick={() => setSelectedReport(null)}>
-                    Close Report
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Reports;

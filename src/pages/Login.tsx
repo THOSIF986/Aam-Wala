@@ -11,34 +11,34 @@ import { useAuth } from "@/contexts/AuthContext";
 const Login = () => {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setIsLoading(true);
 
     try {
       const success = login(userId, password);
 
       if (success) {
         toast({
-          title: "Login Successful",
-          description: "Welcome back!",
+          title: "Welcome!",
+          description: "You're now logged in",
         });
         navigate("/");
       } else {
-        throw new Error("Invalid User ID or Password");
+        throw new Error("Invalid credentials");
       }
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: error instanceof Error ? error.message : "Invalid credentials",
+        description: error instanceof Error ? error.message : "Wrong user ID or password",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -95,17 +95,11 @@ const Login = () => {
               <Button
                 type="submit"
                 className="w-full bg-white text-primary hover:bg-white/90 font-semibold"
-                disabled={loading}
+                disabled={isLoading}
               >
-                {loading ? "Signing In..." : "Sign In"}
+                {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>
-
-            <div className="mt-6 text-center">
-              <p className="text-xs text-white/70">
-                Default Admin ID: Aam-admin-1
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>

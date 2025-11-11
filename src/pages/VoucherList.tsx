@@ -4,54 +4,49 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import Navbar from "@/components/Layout/Navbar";
-import { Eye, Printer, Edit, Trash2, Receipt, Plus, ArrowLeft } from "lucide-react";
+import { Eye, Receipt, ArrowLeft, Trash2, Printer, Edit } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Voucher } from "@/lib/supabase";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const VoucherList = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   
-  // Voucher data - will be populated from API
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [farms, setFarms] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [agents, setAgents] = useState<any[]>([]);
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [voucherToDelete, setVoucherToDelete] = useState<string | null>(null);
-  const [farms, setFarms] = useState<any[]>([]);
-  const [agents, setAgents] = useState<any[]>([]);
 
   // Fetch vouchers, farms, and agents from Supabase
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch vouchers
         const { data: vouchersData, error: vouchersError } = await supabase
           .from('vouchers')
           .select('*')
-          .order('created_at', { ascending: false });
-        
+          .order('date', { ascending: false });
+
         if (vouchersError) throw vouchersError;
-        
-        // Fetch farms
+
         const { data: farmsData, error: farmsError } = await supabase
           .from('farms')
           .select('farm_id, owner_name');
-        
+
         if (farmsError) throw farmsError;
-        
-        // Fetch agents
+
         const { data: agentsData, error: agentsError } = await supabase
           .from('agents')
           .select('agent_id, agent_name');
-        
+
         if (agentsError) throw agentsError;
-        
-        setVouchers(vouchersData || []);
+
+        // Fix TypeScript error by casting the data
+        setVouchers(vouchersData as Voucher[] || []);
         setFarms(farmsData || []);
         setAgents(agentsData || []);
       } catch (error) {
@@ -62,57 +57,35 @@ const VoucherList = () => {
     fetchData();
   }, []);
 
-  // Helper function to get linked entity name
   const getLinkedEntityName = (voucher: Voucher) => {
     if (voucher.linked_to === 'farm') {
       const farm = farms.find(f => f.farm_id === voucher.linked_id);
-      return farm ? farm.owner_name : 'Unknown Farm';
+      return farm ? farm.owner_name : voucher.linked_id;
     } else {
       const agent = agents.find(a => a.agent_id === voucher.linked_id);
-      return agent ? agent.agent_name : 'Unknown Agent';
+      return agent ? agent.agent_name : voucher.linked_id;
     }
   };
 
-  const handlePrintAll = () => {
-    window.print();
-  };
-
-  const handleView = (voucher: Voucher) => {
-    setSelectedVoucher(voucher);
-    setIsViewOpen(true);
-  };
-
-  const handleEdit = (voucher: Voucher) => {
-    setIsViewOpen(false);
-    navigate("/new-voucher", { state: { voucher } });
-  };
-
-  const handleDelete = (id: string) => {
-    setVoucherToDelete(id);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!voucherToDelete) return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this voucher?')) {
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from('vouchers')
         .delete()
-        .eq('id', voucherToDelete);
+        .eq('id', id);
 
       if (error) throw error;
 
-      // Update local state
-      setVouchers(vouchers.filter(v => v.id !== voucherToDelete));
+      setVouchers(vouchers.filter(voucher => voucher.id !== id));
       
       toast({
         title: "Voucher Deleted",
-        description: "The voucher has been successfully deleted.",
+        description: "The voucher has been deleted successfully.",
       });
-
-      setDeleteDialogOpen(false);
-      setVoucherToDelete(null);
     } catch (error) {
       console.error('Error deleting voucher:', error);
       toast({
@@ -123,16 +96,66 @@ const VoucherList = () => {
     }
   };
 
+  const handleView = (voucher: Voucher) => {
+    setSelectedVoucher(voucher);
+    setIsViewOpen(true);
+  };
+
+  const handlePrintAll = () => {
+    window.print();
+  };
+
+  // Function to format currency for printing
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
   return (
     <div className="min-h-screen bg-background font-poppins">
-      <Navbar />
+      <style>{`
+        @import url('@/lib/print-styles.css');
+        
+        @media print {
+          .actions-column {
+            display: none !important;
+          }
+          
+          /* Remove all colors for black and white printing */
+          .print-table th,
+          .print-table td,
+          .print-summary > div,
+          .print-summary .summary-label,
+          .print-summary .summary-value {
+            color: black !important;
+            background: white !important;
+          }
+          
+          .print-table th {
+            background-color: #f0f0f0 !important;
+          }
+        }
+      `}</style>
+
+      <div className="no-print">
+        <Navbar />
+      </div>
       
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-start mb-8">
+      {/* Print Header - Only visible when printing */}
+      <div className="print-header hidden print:block">
+        <h1>Voucher List</h1>
+        <p>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+      </div>
+      
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 print-container">
+        <div className="flex justify-between items-start mb-8 no-print">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
-              onClick={() => navigate('/')}
+              onClick={() => navigate("/")}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -155,8 +178,10 @@ const VoucherList = () => {
           </div>
         </div>
 
-        <Card className="shadow-card border-border/50">
-          <CardHeader>
+        <h1 className="text-3xl font-bold text-foreground mb-6 hidden print:block">Voucher List</h1>
+
+        <Card className="shadow-card border-border/50 print:shadow-none print:border-0">
+          <CardHeader className="print:hidden">
             <CardTitle className="flex items-center gap-2 text-primary">
               <Receipt className="h-6 w-6" />
               All Vouchers ({vouchers.length})
@@ -164,14 +189,14 @@ const VoucherList = () => {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="print-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Voucher ID</TableHead>
                     <TableHead>Linked To</TableHead>
                     <TableHead className="text-right">Amount (₹)</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="text-center actions-column no-print">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -181,7 +206,7 @@ const VoucherList = () => {
                         <TableCell>{new Date(voucher.date).toLocaleDateString('en-IN')}</TableCell>
                         <TableCell className="font-mono font-medium">{voucher.voucher_id}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                          <span className={`px-2 py-1 rounded-md text-xs font-medium print-plain-text ${
                             voucher.linked_to === 'farm' 
                               ? 'bg-secondary/20 text-secondary' 
                               : 'bg-primary/20 text-primary'
@@ -193,7 +218,7 @@ const VoucherList = () => {
                         <TableCell className="text-right font-semibold">
                           ₹{voucher.amount.toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="actions-column no-print">
                           <div className="flex justify-center gap-2">
                             <Button
                               size="sm"
@@ -202,6 +227,14 @@ const VoucherList = () => {
                               className="h-8 w-8 p-0"
                             >
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/edit-voucher/${voucher.id}`)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -230,7 +263,7 @@ const VoucherList = () => {
             </div>
 
             {/* Summary */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
               <Card className="border-success/20 bg-success/5">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-success">
@@ -255,6 +288,10 @@ const VoucherList = () => {
                   <div className="text-sm text-muted-foreground">Total Vouchers</div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Print Summary - Removed as per requirements */}
+            <div className="print-summary hidden print:flex" style={{ display: 'none' }}>
             </div>
           </CardContent>
         </Card>
@@ -325,56 +362,25 @@ const VoucherList = () => {
 
                   <div className="flex justify-between items-center border-b pb-3">
                     <span className="text-sm text-muted-foreground">Payment Mode</span>
-                    <span className="font-medium uppercase">{selectedVoucher.payment_mode}</span>
+                    <span className="font-medium">{selectedVoucher.payment_mode}</span>
                   </div>
 
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-base font-semibold">Amount</span>
-                    <span className="text-2xl font-bold text-primary">
+                  <div className="flex justify-between items-center pt-3">
+                    <span className="text-lg font-bold text-muted-foreground">Amount</span>
+                    <span className={`text-2xl font-bold ${
+                      selectedVoucher.type === 'expense' 
+                        ? 'text-destructive' 
+                        : 'text-success'
+                    }`}>
                       ₹{selectedVoucher.amount.toLocaleString('en-IN')}
                     </span>
                   </div>
                 </CardContent>
               </Card>
-
-              <div className="flex gap-3 pt-4">
-                <Button 
-                  onClick={() => handleEdit(selectedVoucher)}
-                  className="flex-1"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Voucher
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setIsViewOpen(false)}
-                  className="flex-1"
-                >
-                  Close
-                </Button>
-              </div>
             </div>
           )}
         </SheetContent>
       </Sheet>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the voucher from the database.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

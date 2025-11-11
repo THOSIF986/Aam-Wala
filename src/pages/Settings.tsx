@@ -8,16 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Layout/Navbar";
-import { toast } from "@/hooks/use-toast";
 import {
   Settings as SettingsIcon,
   Building2,
-  Palette,
-  Bell,
   Shield,
   Save,
-  Upload,
   ArrowLeft,
   Users,
   Trash2,
@@ -29,6 +26,7 @@ const Settings = () => {
   const navigate = useNavigate();
   const { companySettings, updateCompanySettings } = useCompanySettings();
   const { currentUser, isAdmin } = useAuth();
+  const { toast } = useToast();
 
   const [users, setUsers] = useState<User[]>([]);
   const [newWriter, setNewWriter] = useState({
@@ -38,23 +36,32 @@ const Settings = () => {
   });
   const [newAdminPassword, setNewAdminPassword] = useState("");
 
-  const [appSettings, setAppSettings] = useState({
-    theme: "light",
-    language: "en",
-    dateFormat: "dd/mm/yyyy",
-    numberFormat: "en-IN",
-    autoBackup: true,
-    emailNotifications: true,
-    smsNotifications: false
-  });
-
   const [securitySettings, setSecuritySettings] = useState({
     sessionTimeout: "30",
-    passwordExpiry: "90",
     twoFactorAuth: false,
-    loginAttempts: "3"
+    loginAttempts: "3",
+    autoLockout: true,
+    lockoutDuration: "30"
   });
 
+  useEffect(() => {
+    if (isAdmin) {
+      setUsers(getAllUsers());
+      
+      // Load security settings from localStorage
+      const savedSecuritySettings = localStorage.getItem('securitySettings');
+      if (savedSecuritySettings) {
+        try {
+          const parsed = JSON.parse(savedSecuritySettings);
+          setSecuritySettings(prev => ({ ...prev, ...parsed }));
+        } catch (error) {
+          console.error('Error parsing security settings:', error);
+        }
+      }
+    }
+  }, [isAdmin]);
+
+  // Update users when they change
   useEffect(() => {
     if (isAdmin) {
       setUsers(getAllUsers());
@@ -65,13 +72,6 @@ const Settings = () => {
     updateCompanySettings({ [field]: value });
   };
 
-  const handleAppSettingsChange = (field: string, value: string | boolean) => {
-    setAppSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
   const handleSecuritySettingsChange = (field: string, value: string | boolean) => {
     setSecuritySettings(prev => ({
       ...prev,
@@ -80,24 +80,17 @@ const Settings = () => {
   };
 
   const handleSaveSettings = () => {
-    // In real app, save to backend
+    // Save to localStorage
+    localStorage.setItem('securitySettings', JSON.stringify(securitySettings));
+    
     console.log("Saving settings:", {
       company: companySettings,
-      app: appSettings,
       security: securitySettings
     });
     
     toast({
       title: "Settings Saved",
-      description: "All settings have been updated successfully.",
-    });
-  };
-
-  const handleLogoUpload = () => {
-    console.log("Upload logo");
-    toast({
-      title: "Logo Upload",
-      description: "Logo upload functionality will be implemented.",
+      description: "Security settings have been updated successfully.",
     });
   };
 
@@ -111,15 +104,32 @@ const Settings = () => {
       return;
     }
 
-    if (currentUser) {
-      const writer = createWriter(newWriter.fullName, newWriter.phone, newWriter.password, currentUser.id);
-      setUsers(getAllUsers());
-      setNewWriter({ fullName: "", phone: "", password: "" });
-
+    if (newWriter.password.length < 6) {
       toast({
-        title: "Writer Created",
-        description: `Writer account ${writer.id} has been created successfully.`,
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
       });
+      return;
+    }
+
+    if (currentUser) {
+      try {
+        const writer = createWriter(newWriter.fullName, newWriter.phone, newWriter.password, currentUser.id);
+        setUsers(getAllUsers());
+        setNewWriter({ fullName: "", phone: "", password: "" });
+
+        toast({
+          title: "Writer Created",
+          description: `Writer account ${writer.id} has been created successfully.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to create writer account.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -143,7 +153,7 @@ const Settings = () => {
   const handleChangeAdminPassword = () => {
     if (!newAdminPassword || newAdminPassword.length < 6) {
       toast({
-        title: "Error",
+        title: "Password Too Short",
         description: "Password must be at least 6 characters long.",
         variant: "destructive",
       });
@@ -188,9 +198,9 @@ const Settings = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Company Information */}
-          <Card className="lg:col-span-2 shadow-card border-border/50">
+          <Card className="shadow-card border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-primary">
                 <Building2 className="h-6 w-6" />
@@ -283,145 +293,26 @@ const Settings = () => {
                   </Select>
                 </div>
               </div>
-
-              {/* Logo Upload */}
-              <div className="space-y-2">
-                <Label>Company Logo</Label>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-gradient-primary rounded-lg flex items-center justify-center">
-                    <span className="text-2xl">🥭</span>
-                  </div>
-                  <Button variant="outline" onClick={handleLogoUpload}>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload New Logo
-                  </Button>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
-          {/* Right Column - App & Security Settings */}
-          <div className="space-y-8">
-            {/* Application Settings */}
-            <Card className="shadow-card border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-secondary">
-                  <Palette className="h-6 w-6" />
-                  Application
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+          {/* Security Settings - Simplified */}
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <Shield className="h-6 w-6" />
+                Security Settings
+              </CardTitle>
+              <CardDescription>
+                Configure session and login security
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Session Management */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-foreground">Session Management</h3>
                 <div className="space-y-2">
-                  <Label htmlFor="theme">Theme</Label>
-                  <Select
-                    value={appSettings.theme}
-                    onValueChange={(value) => handleAppSettingsChange("theme", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="language">Language</Label>
-                  <Select
-                    value={appSettings.language}
-                    onValueChange={(value) => handleAppSettingsChange("language", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="hi">Hindi</SelectItem>
-                      <SelectItem value="mr">Marathi</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="dateFormat">Date Format</Label>
-                  <Select
-                    value={appSettings.dateFormat}
-                    onValueChange={(value) => handleAppSettingsChange("dateFormat", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="dd/mm/yyyy">DD/MM/YYYY</SelectItem>
-                      <SelectItem value="mm/dd/yyyy">MM/DD/YYYY</SelectItem>
-                      <SelectItem value="yyyy-mm-dd">YYYY-MM-DD</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notification Settings */}
-            <Card className="shadow-card border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-warning">
-                  <Bell className="h-6 w-6" />
-                  Notifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="autoBackup">Auto Backup</Label>
-                    <p className="text-xs text-muted-foreground">Daily automatic backups</p>
-                  </div>
-                  <Switch
-                    id="autoBackup"
-                    checked={appSettings.autoBackup}
-                    onCheckedChange={(checked) => handleAppSettingsChange("autoBackup", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="emailNotifications">Email Notifications</Label>
-                    <p className="text-xs text-muted-foreground">Receive email alerts</p>
-                  </div>
-                  <Switch
-                    id="emailNotifications"
-                    checked={appSettings.emailNotifications}
-                    onCheckedChange={(checked) => handleAppSettingsChange("emailNotifications", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="smsNotifications">SMS Notifications</Label>
-                    <p className="text-xs text-muted-foreground">Receive SMS alerts</p>
-                  </div>
-                  <Switch
-                    id="smsNotifications"
-                    checked={appSettings.smsNotifications}
-                    onCheckedChange={(checked) => handleAppSettingsChange("smsNotifications", checked)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Security Settings */}
-            <Card className="shadow-card border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-destructive">
-                  <Shield className="h-6 w-6" />
-                  Security
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                  <Label htmlFor="sessionTimeout">Session Timeout</Label>
                   <Select
                     value={securitySettings.sessionTimeout}
                     onValueChange={(value) => handleSecuritySettingsChange("sessionTimeout", value)}
@@ -434,22 +325,17 @@ const Settings = () => {
                       <SelectItem value="30">30 minutes</SelectItem>
                       <SelectItem value="60">1 hour</SelectItem>
                       <SelectItem value="120">2 hours</SelectItem>
+                      <SelectItem value="240">4 hours</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">Auto-logout after inactivity</p>
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="twoFactorAuth">Two-Factor Authentication</Label>
-                    <p className="text-xs text-muted-foreground">Extra security layer</p>
-                  </div>
-                  <Switch
-                    id="twoFactorAuth"
-                    checked={securitySettings.twoFactorAuth}
-                    onCheckedChange={(checked) => handleSecuritySettingsChange("twoFactorAuth", checked)}
-                  />
-                </div>
-
+              {/* Login Security */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm text-foreground">Login Security</h3>
+                
                 <div className="space-y-2">
                   <Label htmlFor="loginAttempts">Max Login Attempts</Label>
                   <Select
@@ -463,12 +349,47 @@ const Settings = () => {
                       <SelectItem value="3">3 attempts</SelectItem>
                       <SelectItem value="5">5 attempts</SelectItem>
                       <SelectItem value="10">10 attempts</SelectItem>
+                      <SelectItem value="unlimited">Unlimited</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">Lock account after failed attempts</p>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="autoLockout">Auto Account Lockout</Label>
+                    <p className="text-xs text-muted-foreground">Lock on suspicious activity</p>
+                  </div>
+                  <Switch
+                    id="autoLockout"
+                    checked={securitySettings.autoLockout}
+                    onCheckedChange={(checked) => handleSecuritySettingsChange("autoLockout", checked)}
+                  />
+                </div>
+
+                {securitySettings.autoLockout && (
+                  <div className="space-y-2">
+                    <Label htmlFor="lockoutDuration">Lockout Duration</Label>
+                    <Select
+                      value={securitySettings.lockoutDuration}
+                      onValueChange={(value) => handleSecuritySettingsChange("lockoutDuration", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15">15 minutes</SelectItem>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="1440">24 hours</SelectItem>
+                        <SelectItem value="permanent">Permanent (Admin unlock required)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* User Management - Admin Only */}
@@ -514,7 +435,7 @@ const Settings = () => {
                           type="password"
                           value={newWriter.password}
                           onChange={(e) => setNewWriter({ ...newWriter, password: e.target.value })}
-                          placeholder="Enter password"
+                          placeholder="Enter password (min 6 characters)"
                         />
                       </div>
                       <Button onClick={handleCreateWriter} className="w-full bg-gradient-primary">
@@ -564,7 +485,7 @@ const Settings = () => {
                         type="password"
                         value={newAdminPassword}
                         onChange={(e) => setNewAdminPassword(e.target.value)}
-                        placeholder="Enter new password"
+                        placeholder="Enter new password (min 6 characters)"
                       />
                     </div>
                     <Button onClick={handleChangeAdminPassword} className="bg-gradient-secondary">

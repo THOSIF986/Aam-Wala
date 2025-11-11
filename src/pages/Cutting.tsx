@@ -23,7 +23,9 @@ const Cutting = () => {
     expectedQuantity: "",
     notes: ""
   });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [farms, setFarms] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cuttingSchedule, setCuttingSchedule] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 

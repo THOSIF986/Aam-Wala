@@ -4,19 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Navbar from "@/components/Layout/Navbar";
-import { Eye, Edit, Trash2, UserCheck, BookOpen, ArrowLeft } from "lucide-react";
+import { Eye, Edit, Trash2, UserCheck, BookOpen, ArrowLeft, Pencil, FileText } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Agent } from "@/lib/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 const AgentList = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Agent data - will be populated from API
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<Agent | null>(null);
 
   // Fetch agents from Supabase
   useEffect(() => {
@@ -39,12 +46,50 @@ const AgentList = () => {
     fetchAgents();
   }, []);
 
-  const handleEdit = (id: string) => {
-    // In real app, navigate to edit agent page
-    console.log("Edit agent:", id);
+  const handleEdit = (agent: Agent) => {
+    setEditForm(agent);
+    setIsEditOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleUpdateAgent = async () => {
+    if (!editForm) return;
+
+    try {
+      const { error } = await supabase
+        .from('agents')
+        .update({
+          company_name: editForm.company_name,
+          agent_name: editForm.agent_name,
+          mobile: editForm.mobile,
+          guarantor: editForm.guarantor,
+          status: editForm.status,
+        })
+        .eq('id', editForm.id);
+
+      if (error) throw error;
+
+      setAgents(prev => prev.map(a => a.id === editForm.id ? editForm : a));
+      setIsEditOpen(false);
+      setEditForm(null);
+      toast({
+        title: "Agent Updated",
+        description: "Agent details have been updated successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update agent. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string, agentId: string) => {
+    if (!confirm(`Are you sure you want to delete agent ${agentId}?`)) {
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('agents')
@@ -55,8 +100,18 @@ const AgentList = () => {
       
       // Remove from local state
       setAgents(prev => prev.filter(agent => agent.id !== id));
+      
+      toast({
+        title: "Agent Deleted",
+        description: `Agent ${agentId} has been deleted successfully.`,
+      });
     } catch (error) {
       console.error('Error deleting agent:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete agent. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -132,6 +187,7 @@ const AgentList = () => {
                     <TableHead>Agent ID</TableHead>
                     <TableHead>Company Name</TableHead>
                     <TableHead>Agent Name</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -142,6 +198,15 @@ const AgentList = () => {
                         <TableCell className="font-mono font-medium">{agent.agent_id}</TableCell>
                         <TableCell className="font-semibold">{agent.company_name}</TableCell>
                         <TableCell>{agent.agent_name}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                            agent.status === 'active' 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {agent.status === 'active' ? 'Active' : 'Inactive'}
+                          </span>
+                        </TableCell>
                         <TableCell>
                           <div className="flex justify-center gap-2">
                             <Button
@@ -156,6 +221,15 @@ const AgentList = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEdit(agent)}
+                              className="h-8 w-8 p-0"
+                              title="Edit Agent"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                             <Link to={`/agent-ledger/${agent.agent_id}`}>
                               <Button
                                 size="sm"
@@ -169,7 +243,7 @@ const AgentList = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => handleDelete(agent.id)}
+                              onClick={() => handleDelete(agent.id, agent.agent_id)}
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                               title="Delete Agent"
                             >
@@ -181,7 +255,7 @@ const AgentList = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-8">
+                      <TableCell colSpan={5} className="text-center py-8">
                         <div className="text-muted-foreground">
                           {loading ? (
                             <p>Loading agents...</p>
@@ -201,6 +275,89 @@ const AgentList = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Edit Agent Sheet */}
+      <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <SheetContent className="overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Edit Agent</SheetTitle>
+          </SheetHeader>
+          {editForm && (
+            <div className="space-y-4 mt-6">
+              <div className="space-y-2">
+                <Label htmlFor="edit-company-name">Company Name *</Label>
+                <Input
+                  id="edit-company-name"
+                  value={editForm.company_name}
+                  onChange={(e) => setEditForm({ ...editForm, company_name: e.target.value })}
+                  placeholder="Enter company name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-agent-name">Agent Name *</Label>
+                <Input
+                  id="edit-agent-name"
+                  value={editForm.agent_name}
+                  onChange={(e) => setEditForm({ ...editForm, agent_name: e.target.value })}
+                  placeholder="Enter agent name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-mobile">Mobile *</Label>
+                <Input
+                  id="edit-mobile"
+                  value={editForm.mobile}
+                  onChange={(e) => setEditForm({ ...editForm, mobile: e.target.value })}
+                  placeholder="Enter mobile number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-guarantor">Guarantor</Label>
+                <Input
+                  id="edit-guarantor"
+                  value={editForm.guarantor || ''}
+                  onChange={(e) => setEditForm({ ...editForm, guarantor: e.target.value })}
+                  placeholder="Enter guarantor name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-status">Status *</Label>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(value: 'active' | 'inactive') => 
+                    setEditForm({ ...editForm, status: value })
+                  }
+                >
+                  <SelectTrigger id="edit-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button onClick={handleUpdateAgent} className="flex-1">
+                  Save Changes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* View Agent Details Sheet */}
       <Sheet open={isViewOpen} onOpenChange={setIsViewOpen}>
@@ -250,14 +407,6 @@ const AgentList = () => {
                     <span className="text-sm text-muted-foreground">Mobile</span>
                     <span className="font-mono font-semibold">{selectedAgent.mobile}</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm text-muted-foreground">Alternate Mobile</span>
-                    <span className="font-mono font-semibold">{selectedAgent.alternate_mobile || 'N/A'}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm text-muted-foreground">Address</span>
-                    <span className="font-semibold text-right">{selectedAgent.address}</span>
-                  </div>
                 </div>
               </div>
 
@@ -267,14 +416,6 @@ const AgentList = () => {
                   <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
                     <span className="text-sm text-muted-foreground">Guarantor Name</span>
                     <span className="font-semibold">{selectedAgent.guarantor}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm text-muted-foreground">Guarantor Mobile</span>
-                    <span className="font-mono font-semibold">{selectedAgent.guarantor_mobile}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm text-muted-foreground">Guarantor Village</span>
-                    <span className="font-semibold">{selectedAgent.guarantor_village}</span>
                   </div>
                 </div>
               </div>

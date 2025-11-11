@@ -20,9 +20,9 @@ export type Database = {
           agent_name: string
           company_name: string
           created_at: string
-          guarantor: string | null
+          guarantor: string
           id: string
-          mobile: string | null
+          mobile: string
           status: string
           updated_at: string
         }
@@ -31,9 +31,9 @@ export type Database = {
           agent_name: string
           company_name: string
           created_at?: string
-          guarantor?: string | null
+          guarantor: string
           id?: string
-          mobile?: string | null
+          mobile: string
           status?: string
           updated_at?: string
         }
@@ -42,9 +42,9 @@ export type Database = {
           agent_name?: string
           company_name?: string
           created_at?: string
-          guarantor?: string | null
+          guarantor?: string
           id?: string
-          mobile?: string | null
+          mobile?: string
           status?: string
           updated_at?: string
         }
@@ -164,8 +164,8 @@ export type Database = {
           farm_id: string
           guarantor: string | null
           id: string
-          lease_end_date: string | null
-          lease_start_date: string | null
+          lease_end_date: string
+          lease_start_date: string
           location: string
           owner_name: string
           price: number
@@ -177,10 +177,10 @@ export type Database = {
           created_at?: string
           crop_type?: string | null
           farm_id: string
-          guarantor?: string | null
+          guarantor: string
           id?: string
-          lease_end_date?: string | null
-          lease_start_date?: string | null
+          lease_end_date: string
+          lease_start_date: string
           location: string
           owner_name: string
           price?: number
@@ -192,10 +192,10 @@ export type Database = {
           created_at?: string
           crop_type?: string | null
           farm_id?: string
-          guarantor?: string | null
+          guarantor?: string
           id?: string
-          lease_end_date?: string | null
-          lease_start_date?: string | null
+          lease_end_date?: string
+          lease_start_date?: string
           location?: string
           owner_name?: string
           price?: number

@@ -1,5 +1,8 @@
-import { supabase as rawSupabase } from "@/integrations/supabase/client";
-export const supabase = rawSupabase as any;
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+export { supabase };
 
 // Database Types
 export interface Farm {

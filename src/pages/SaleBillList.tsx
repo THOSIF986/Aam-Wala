@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import Navbar from "@/components/Layout/Navbar";
-import { Eye, FileText, ArrowLeft, Trash2, Printer } from "lucide-react";
+import { Eye, FileText, ArrowLeft, Trash2, Printer, Edit } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Bill } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +15,9 @@ const SaleBillList = () => {
   const { toast } = useToast();
   
   const [bills, setBills] = useState<Bill[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [farms, setFarms] = useState<any[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agents, setAgents] = useState<any[]>([]);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [isViewOpen, setIsViewOpen] = useState(false);
@@ -34,8 +36,9 @@ const SaleBillList = () => {
         // Fetch bill items for each bill
         const billsWithItems = await Promise.all(
           (billsData || []).map(async (bill) => {
-            const { data: itemsData, error: itemsError } = await supabase
-              .from('bill_items')
+                        const { data: itemsData, error: itemsError } = await supabase
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .from('bill_items' as any)
               .select('*')
               .eq('bill_id', bill.bill_id)
               .order('created_at', { ascending: true});
@@ -61,7 +64,8 @@ const SaleBillList = () => {
 
         if (agentsError) throw agentsError;
 
-        setBills(billsWithItems);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setBills(billsWithItems as any);
         setFarms(farmsData || []);
         setAgents(agentsData || []);
       } catch (error) {
@@ -126,12 +130,57 @@ const SaleBillList = () => {
     setIsViewOpen(true);
   };
 
+  const handlePrintAll = () => {
+    window.print();
+  };
+
+  // Function to format currency for printing
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
   return (
     <div className="min-h-screen bg-background font-poppins">
-      <Navbar />
+      <style>{`
+        @import url('@/lib/print-styles.css');
+        
+        @media print {
+          .actions-column {
+            display: none !important;
+          }
+          
+          /* Remove all colors for black and white printing */
+          .print-table th,
+          .print-table td,
+          .print-summary > div,
+          .print-summary .summary-label,
+          .print-summary .summary-value {
+            color: black !important;
+            background: white !important;
+          }
+          
+          .print-table th {
+            background-color: #f0f0f0 !important;
+          }
+        }
+      `}</style>
+
+      <div className="no-print">
+        <Navbar />
+      </div>
       
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-start mb-8">
+      {/* Print Header - Only visible when printing */}
+      <div className="print-header hidden print:block">
+        <h1>Sales Bill List</h1>
+        <p>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+      </div>
+      
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 print-container">
+        <div className="flex justify-between items-start mb-8 no-print">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -147,7 +196,7 @@ const SaleBillList = () => {
             </div>
           </div>
           <Button
-            onClick={() => window.print()}
+            onClick={handlePrintAll}
             variant="outline"
             className="flex items-center gap-2"
           >
@@ -156,8 +205,10 @@ const SaleBillList = () => {
           </Button>
         </div>
 
-        <Card className="shadow-card border-border/50">
-          <CardHeader>
+        <h1 className="text-3xl font-bold text-foreground mb-6 hidden print:block">Sales Bill List</h1>
+
+        <Card className="shadow-card border-border/50 print:shadow-none print:border-0">
+          <CardHeader className="print:hidden">
             <CardTitle className="flex items-center gap-2 text-secondary">
               <FileText className="h-6 w-6" />
               All Sales Bills ({bills.length})
@@ -165,15 +216,16 @@ const SaleBillList = () => {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="print-table">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead>Bill ID</TableHead>
                     <TableHead>Linked Agent</TableHead>
                     <TableHead>Linked Farm</TableHead>
-                    <TableHead className="text-right">Net Payment (₹)</TableHead>
-                    <TableHead className="text-center">Actions</TableHead>
+                    <TableHead className="text-right">Quantity (kg)</TableHead>
+                    <TableHead className="text-right">Total (₹)</TableHead>
+                    <TableHead className="text-center actions-column no-print">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -183,19 +235,22 @@ const SaleBillList = () => {
                         <TableCell>{new Date(bill.created_at).toLocaleDateString('en-IN')}</TableCell>
                         <TableCell className="font-mono font-medium">{bill.bill_id}</TableCell>
                         <TableCell>
-                          <span className="px-2 py-1 rounded-md text-xs font-medium bg-primary/20 text-primary">
+                          <span className="px-2 py-1 rounded-md text-xs font-medium bg-primary/20 text-primary print-plain-text">
                             {getAgentName(bill.agent_id)}
                           </span>
                         </TableCell>
                         <TableCell>
-                          <span className="px-2 py-1 rounded-md text-xs font-medium bg-secondary/20 text-secondary">
+                          <span className="px-2 py-1 rounded-md text-xs font-medium bg-secondary/20 text-secondary print-plain-text">
                             {getFarmName(bill.farm_id)}
                           </span>
                         </TableCell>
-                        <TableCell className="text-right font-bold text-success">
-                          ₹{bill.net_payment.toLocaleString('en-IN')}
+                        <TableCell className="text-right">
+                          {bill.quantity.toLocaleString('en-IN')}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-right font-bold">
+                          ₹{bill.total.toLocaleString('en-IN')}
+                        </TableCell>
+                        <TableCell className="actions-column no-print">
                           <div className="flex justify-center gap-2">
                             <Button
                               size="sm"
@@ -204,6 +259,14 @@ const SaleBillList = () => {
                               className="h-8 w-8 p-0"
                             >
                               <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => navigate(`/edit-bill/${bill.id}`)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -219,7 +282,7 @@ const SaleBillList = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
+                      <TableCell colSpan={7} className="text-center py-8">
                         <div className="text-muted-foreground">
                           <p className="mb-2">No sales bills created yet</p>
                           <p className="text-sm">Create bills from the home page</p>
@@ -232,7 +295,7 @@ const SaleBillList = () => {
             </div>
 
             {/* Summary Cards */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
               <Card className="border-primary/20 bg-primary/5">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-primary">
@@ -257,6 +320,10 @@ const SaleBillList = () => {
                   <div className="text-sm text-muted-foreground">Total Bills</div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Print Summary - Removed Total Quantity and Total Bills as per requirements */}
+            <div className="print-summary hidden print:flex" style={{ display: 'none' }}>
             </div>
           </CardContent>
         </Card>
@@ -329,75 +396,83 @@ const SaleBillList = () => {
                   {/* Variety-wise breakdown */}
                   {selectedBill.bill_items && selectedBill.bill_items.length > 0 ? (
                     <div className="space-y-3">
-                      {selectedBill.bill_items.map((item, index) => (
-                        <div key={item.id} className="space-y-3 p-4 bg-gradient-to-br from-accent/30 to-accent/10 rounded-lg border-2 border-accent/40">
-                          <div className="flex items-center justify-between border-b border-accent/30 pb-2">
-                            <h4 className="font-bold text-base text-primary">Variety {index + 1}</h4>
-                            <span className="px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-semibold">{item.product_variety}</span>
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center p-2 bg-background/50 rounded">
-                              <span className="text-sm font-medium text-muted-foreground">Quantity</span>
-                              <span className="font-bold text-foreground">{item.quantity.toLocaleString('en-IN')} kg</span>
-                            </div>
-                            <div className="flex justify-between items-center p-2 bg-background/50 rounded">
-                              <span className="text-sm font-medium text-muted-foreground">Rate per kg</span>
-                              <span className="font-bold text-foreground">₹{item.rate.toLocaleString('en-IN')}</span>
-                            </div>
-                            <div className="flex justify-between items-center p-3 bg-primary/20 rounded-lg border border-primary/30">
-                              <span className="font-semibold text-primary">Variety Total Amount</span>
-                              <span className="font-bold text-lg text-primary">₹{item.total.toLocaleString('en-IN')}</span>
-                            </div>
-                          </div>
+                      <h4 className="font-semibold text-muted-foreground">Variety Breakdown</h4>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Variety</TableHead>
+                            <TableHead className="text-right">Quantity (kg)</TableHead>
+                            <TableHead className="text-right">Rate (₹/kg)</TableHead>
+                            <TableHead className="text-right">Total (₹)</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedBill.bill_items.map((item, index) => (
+                            <TableRow key={item.id}>
+                              <TableCell>
+                                <div className="font-medium">{item.product_variety}</div>
+                                <div className="text-xs text-muted-foreground">Item #{index + 1}</div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="font-medium">{item.quantity.toLocaleString('en-IN')}</div>
+                                <div className="text-xs text-muted-foreground">kg</div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="font-medium">₹{item.rate.toLocaleString('en-IN')}</div>
+                                <div className="text-xs text-muted-foreground">per kg</div>
+                              </TableCell>
+                              <TableCell className="text-right font-semibold">
+                                <div>₹{item.total.toLocaleString('en-IN')}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {item.quantity > 0 ? `₹${(item.total / item.quantity).toFixed(2)}/kg` : 'N/A'}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                      <div className="bg-muted/20 p-3 rounded-lg">
+                        <div className="flex justify-between font-semibold">
+                          <span>Total Varieties:</span>
+                          <span>{selectedBill.bill_items.length}</span>
                         </div>
-                      ))}
+                      </div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                        <span className="text-sm text-muted-foreground">Quantity</span>
-                        <span className="font-semibold">{selectedBill.quantity} kg</span>
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                        <span className="text-sm text-muted-foreground">Rate per kg</span>
-                        <span className="font-semibold">₹{selectedBill.rate.toLocaleString('en-IN')}</span>
-                      </div>
-                    </div>
+                    <p className="text-muted-foreground text-center py-4">No variety details available</p>
                   )}
 
-                  <div className="border-t-2 border-dashed border-muted-foreground/30 my-4"></div>
-
-                  <div className="flex justify-between items-center p-3 bg-primary/10 rounded border border-primary/20">
-                    <span className="font-medium">Total Amount</span>
-                    <span className="font-bold text-lg">₹{selectedBill.total.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm text-muted-foreground">(-) Unloading Charges</span>
-                    <span className="font-semibold text-destructive">₹{selectedBill.unloading_amount.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-muted/30 rounded">
-                    <span className="text-sm text-muted-foreground">(-) Advance</span>
-                    <span className="font-semibold text-destructive">₹{selectedBill.advance.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-success/10 rounded border-2 border-success/30">
-                    <span className="font-bold text-base">Net Payment</span>
-                    <span className="font-bold text-xl text-success">₹{selectedBill.net_payment.toLocaleString('en-IN')}</span>
+                  {/* Financial Summary */}
+                  <div className="border rounded-lg p-4 mt-4">
+                    <h4 className="font-semibold text-muted-foreground mb-3">Financial Summary</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                          <span className="text-muted-foreground">Unloading Charges:</span>
+                          <span className="font-medium">₹{selectedBill.unloading_amount.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                          <span className="text-muted-foreground">Advance:</span>
+                          <span className="font-medium">₹{selectedBill.advance.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-muted/30 rounded">
+                          <span className="text-muted-foreground">Total Quantity:</span>
+                          <span className="font-medium">{selectedBill.quantity.toLocaleString('en-IN')} kg</span>
+                        </div>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center p-2 bg-primary/10 rounded border border-primary/20">
+                          <span className="font-semibold">Gross Total:</span>
+                          <span className="font-bold text-lg">₹{selectedBill.total.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between items-center p-2 bg-success/10 rounded border border-success/20">
+                          <span className="font-bold text-success">Net Payment:</span>
+                          <span className="font-bold text-success text-lg">₹{selectedBill.net_payment.toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Actions */}
-              <div className="pt-2 space-y-2">
-                <Button
-                  onClick={() => {
-                    setIsViewOpen(false);
-                    navigate(`/edit-bill/${selectedBill.id}`);
-                  }}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Edit Bill
-                </Button>
               </div>
             </div>
           )}

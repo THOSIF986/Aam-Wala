@@ -61,10 +61,7 @@ const FarmList = () => {
           owner_name: editForm.owner_name,
           area: editForm.area,
           price: editForm.price,
-          village: editForm.village,
-          taluka: editForm.taluka,
-          district: editForm.district,
-          phone: editForm.phone,
+          location: editForm.location,
           status: editForm.status,
         })
         .eq('id', editForm.id);
@@ -401,11 +398,11 @@ const FarmList = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-phone">Phone</Label>
+                <Label htmlFor="edit-location">Location</Label>
                 <Input
-                  id="edit-phone"
-                  value={editForm.phone}
-                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  id="edit-location"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -425,32 +422,6 @@ const FarmList = () => {
                     type="number"
                     value={editForm.price}
                     onChange={(e) => setEditForm({ ...editForm, price: parseFloat(e.target.value) })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-village">Village</Label>
-                <Input
-                  id="edit-village"
-                  value={editForm.village}
-                  onChange={(e) => setEditForm({ ...editForm, village: e.target.value })}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-taluka">Taluka</Label>
-                  <Input
-                    id="edit-taluka"
-                    value={editForm.taluka}
-                    onChange={(e) => setEditForm({ ...editForm, taluka: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-district">District</Label>
-                  <Input
-                    id="edit-district"
-                    value={editForm.district}
-                    onChange={(e) => setEditForm({ ...editForm, district: e.target.value })}
                   />
                 </div>
               </div>

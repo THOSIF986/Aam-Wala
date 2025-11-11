@@ -23,6 +23,7 @@ import Cutting from "./pages/Cutting";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import BackupReset from "./pages/BackupReset";
+import EditVoucher from "./pages/EditVoucher";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/new-voucher" element={<ProtectedRoute><NewVoucher /></ProtectedRoute>} />
             <Route path="/new-bill" element={<ProtectedRoute><NewBill /></ProtectedRoute>} />
             <Route path="/edit-bill/:id" element={<ProtectedRoute><EditBill /></ProtectedRoute>} />
+            <Route path="/edit-voucher/:id" element={<ProtectedRoute><EditVoucher /></ProtectedRoute>} />
             <Route path="/voucher-list" element={<ProtectedRoute><VoucherList /></ProtectedRoute>} />
             <Route path="/sale-bill-list" element={<ProtectedRoute><SaleBillList /></ProtectedRoute>} />
             <Route path="/farmer-ledger/:id" element={<ProtectedRoute><FarmerLedger /></ProtectedRoute>} />
@@ -48,7 +50,7 @@ const App = () => (
             <Route path="/farm-list" element={<ProtectedRoute><FarmList /></ProtectedRoute>} />
             <Route path="/agent-list" element={<ProtectedRoute><AgentList /></ProtectedRoute>} />
             <Route path="/cutting" element={<ProtectedRoute><Cutting /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+            <Route path="/Reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/backup-reset" element={<ProtectedRoute><BackupReset /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />

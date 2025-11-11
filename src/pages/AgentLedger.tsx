@@ -12,7 +12,9 @@ const AgentLedger = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [agent, setAgent] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,6 +71,15 @@ const AgentLedger = () => {
     window.print();
   };
 
+  // Function to format currency for printing
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background font-poppins">
@@ -93,10 +104,38 @@ const AgentLedger = () => {
 
   return (
     <div className="min-h-screen bg-background font-poppins">
-      <Navbar />
+      <style>{`
+        @import url('@/lib/print-styles.css');
+        
+        @media print {
+          /* Remove all colors for black and white printing */
+          .print-table th,
+          .print-table td,
+          .print-summary > div,
+          .print-summary .summary-label,
+          .print-summary .summary-value {
+            color: black !important;
+            background: white !important;
+          }
+          
+          .print-table th {
+            background-color: #f0f0f0 !important;
+          }
+        }
+      `}</style>
+
+      <div className="no-print">
+        <Navbar />
+      </div>
       
-      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-start mb-8">
+      {/* Print Header - Only visible when printing */}
+      <div className="print-header hidden print:block">
+        <h1>Agent Ledger: {agent.agent_name}</h1>
+        <p>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+      </div>
+      
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 print-container">
+        <div className="flex justify-between items-start mb-8 no-print">
           <div className="flex items-center gap-4">
             <Button
               variant="outline"
@@ -130,29 +169,37 @@ const AgentLedger = () => {
           </div>
         </div>
 
+        {/* Print-only Agent Details - Simplified for printing */}
+        <div className="print-agent-details hidden print:block">
+          <div className="print-detail-row">
+            <span className="print-detail-label">Agent ID:</span>
+            <span className="print-detail-value">{agent.agent_id}</span>
+          </div>
+          <div className="print-detail-row">
+            <span className="print-detail-label">Company Name:</span>
+            <span className="print-detail-value">{agent.company_name}</span>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Left Side - Agent Details */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 print:hidden">
             <Card className="shadow-card border-border/50 sticky top-8">
               <CardHeader>
                 <CardTitle className="text-primary">Agent Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
+                  <label className="text-sm font-medium text-muted-foreground">Agent ID</label>
+                  <p className="font-semibold">{agent.agent_id}</p>
+                </div>
+                <div>
                   <label className="text-sm font-medium text-muted-foreground">Company Name</label>
                   <p className="font-semibold">{agent.company_name}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Agent Name</label>
-                  <p className="font-semibold">{agent.agent_name}</p>
-                </div>
-                <div>
                   <label className="text-sm font-medium text-muted-foreground">Mobile</label>
                   <p className="font-mono">{agent.mobile || 'N/A'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Guarantor</label>
-                  <p className="font-semibold">{agent.guarantor || 'N/A'}</p>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-muted-foreground">Active</span>
@@ -181,13 +228,13 @@ const AgentLedger = () => {
 
           {/* Right Side - Ledger Table */}
           <div className="lg:col-span-3">
-            <Card className="shadow-card border-border/50">
-              <CardHeader>
+            <Card className="shadow-card border-border/50 print:shadow-none print:border-0">
+              <CardHeader className="print:hidden">
                 <CardTitle className="text-secondary">Ledger Transactions</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="print-table">
                     <TableHeader>
                       <TableRow className="bg-primary/20">
                         <TableHead>Date</TableHead>
@@ -203,7 +250,7 @@ const AgentLedger = () => {
                             <TableCell>{new Date(entry.date).toLocaleDateString('en-IN')}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${
+                                <span className={`w-2 h-2 rounded-full print:hidden ${
                                   entry.transaction_type === 'bill' ? 'bg-destructive' : 'bg-success'
                                 }`}></span>
                                 {entry.description}
@@ -231,8 +278,8 @@ const AgentLedger = () => {
                   </Table>
                 </div>
 
-                {/* Summary Row */}
-                <div className="bg-primary/10 p-4 rounded-lg mt-6">
+                {/* Summary Row - Screen Version */}
+                <div className="bg-primary/10 p-4 rounded-lg mt-6 print:hidden">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
                     <div>
                       <p className="text-sm text-muted-foreground">Total Debit</p>
@@ -258,6 +305,26 @@ const AgentLedger = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </div>
+
+        {/* Summary Row - Print Version (Properly aligned in rows and columns) */}
+        <div className="print-summary hidden print:grid print:grid-cols-4 print:gap-4 print:border print:border-black print:p-4">
+          <div className="print:text-center print:border print:border-black print:p-2">
+            <div className="print:font-normal print:text-sm print:mb-1">Total Debit</div>
+            <div className="print:font-bold print:text-base">₹{totalDebit.toLocaleString('en-IN')}</div>
+          </div>
+          <div className="print:text-center print:border print:border-black print:p-2">
+            <div className="print:font-normal print:text-sm print:mb-1">Total Credit</div>
+            <div className="print:font-bold print:text-base">₹{totalCredit.toLocaleString('en-IN')}</div>
+          </div>
+          <div className="print:text-center print:border print:border-black print:p-2">
+            <div className="print:font-normal print:text-sm print:mb-1">Total Vouchers</div>
+            <div className="print:font-bold print:text-base">{totalVouchers}</div>
+          </div>
+          <div className="print:text-center print:border print:border-black print:p-2">
+            <div className="print:font-normal print:text-sm print:mb-1">Total Bills</div>
+            <div className="print:font-bold print:text-base">{totalBills}</div>
           </div>
         </div>
       </main>

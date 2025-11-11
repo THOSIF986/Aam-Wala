@@ -8,7 +8,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth();
 
-  const currentDate = new Date().toLocaleDateString('en-IN', {
+  // get today's date in readable format
+  const today = new Date().toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'long',
     year: 'numeric'
@@ -39,7 +40,7 @@ const Navbar = () => {
           {/* Center - Current Date */}
           <div className="hidden md:block">
             <div className="bg-white/10 px-4 py-2 rounded-lg">
-              <p className="text-white text-sm font-medium">{currentDate}</p>
+              <p className="text-white text-sm font-medium">{today}</p>
             </div>
           </div>
 

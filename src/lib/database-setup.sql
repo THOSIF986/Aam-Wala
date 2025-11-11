@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS farms (
   lease_start_date DATE NOT NULL,
   lease_end_date DATE NOT NULL,
   guarantor VARCHAR(255) NOT NULL,
-  crop_type VARCHAR(100) NOT NULL DEFAULT 'Sugarcane',
+  crop_type VARCHAR(100) NOT NULL DEFAULT 'Mango',
   status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()

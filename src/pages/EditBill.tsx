@@ -26,9 +26,9 @@ const EditBill = () => {
     netPayment: ""
   });
 
-  const [varieties, setVarieties] = useState([
-    { id: 1, variety: "", quantity: "", rate: "", total: 0 }
-  ]);
+  const [varieties, setVarieties] = useState<Array<{id: number, variety: string, quantity: string, rate: string}>>([{
+    id: 1, variety: "", quantity: "", rate: ""
+  }]);
 
   const [agents, setAgents] = useState([]);
   const [farms, setFarms] = useState([]);
@@ -107,16 +107,12 @@ const EditBill = () => {
 
   // Calculate totals
   useEffect(() => {
-    const updatedVarieties = varieties.map(variety => ({
-      ...variety,
-      total: (parseFloat(variety.quantity) || 0) * (parseFloat(variety.rate) || 0)
-    }));
+    const totalAmount = varieties.reduce((sum, variety) => {
+      const quantity = parseFloat(variety.quantity) || 0;
+      const rate = parseFloat(variety.rate) || 0;
+      return sum + (quantity * rate);
+    }, 0);
     
-    if (JSON.stringify(updatedVarieties) !== JSON.stringify(varieties)) {
-      setVarieties(updatedVarieties);
-    }
-    
-    const totalAmount = updatedVarieties.reduce((sum, variety) => sum + variety.total, 0);
     const unloadingAmount = parseFloat(formData.unloadingAmount) || 0;
     const advance = parseFloat(formData.advance) || 0;
     const netPayment = totalAmount - (unloadingAmount + advance);
@@ -145,7 +141,8 @@ const EditBill = () => {
       const totalQuantity = validVarieties.reduce((sum, v) => sum + parseFloat(v.quantity), 0);
       const averageRate = parseFloat(formData.total) / totalQuantity;
       
-      const { error } = await supabase
+      // Update the bill
+      const { error: billError } = await supabase
         .from('bills')
         .update({
           agent_id: formData.agent,
@@ -163,7 +160,33 @@ const EditBill = () => {
         })
         .eq('id', id);
 
-      if (error) throw error;
+      if (billError) throw billError;
+
+            const { error: deleteError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('bill_items' as any)
+        .delete()
+        .eq('bill_id', formData.billId);
+
+      if (deleteError) console.error('Error deleting old bill items:', deleteError);
+
+      // Insert new bill items for each variety
+      const billItemsToInsert = validVarieties.map(variety => ({
+        bill_id: formData.billId,
+        product_variety: variety.variety,
+        quantity: parseFloat(variety.quantity),
+        rate: parseFloat(variety.rate),
+        total: parseFloat(variety.quantity) * parseFloat(variety.rate)
+      }));
+
+            const { error: itemsError } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from('bill_items' as any)
+        .insert(billItemsToInsert);
+
+      if (itemsError) {
+        console.error('Error inserting bill items:', itemsError);
+      }
       
       toast({
         title: "Bill Updated Successfully",
@@ -198,7 +221,7 @@ const EditBill = () => {
 
   const addVariety = () => {
     const newId = Math.max(...varieties.map(v => v.id)) + 1;
-    setVarieties(prev => [...prev, { id: newId, variety: "", quantity: "", rate: "", total: 0 }]);
+    setVarieties(prev => [...prev, { id: newId, variety: "", quantity: "", rate: "" }]);
   };
 
   const removeVariety = (id: number) => {
@@ -436,7 +459,7 @@ const EditBill = () => {
                           <Label htmlFor={`total-${variety.id}`}>Total (₹)</Label>
                           <Input
                             id={`total-${variety.id}`}
-                            value={variety.total.toFixed(2)}
+                            value={((parseFloat(variety.quantity) || 0) * (parseFloat(variety.rate) || 0)).toFixed(2)}
                             disabled
                             className="bg-muted font-semibold text-primary"
                           />

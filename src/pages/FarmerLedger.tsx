@@ -12,7 +12,9 @@ const FarmerLedger = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [farm, setFarm] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [ledgerEntries, setLedgerEntries] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,6 +71,15 @@ const FarmerLedger = () => {
     window.print();
   };
 
+  // Function to format currency for printing
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background font-poppins">
@@ -94,130 +105,21 @@ const FarmerLedger = () => {
   return (
     <div className="min-h-screen bg-background font-poppins">
       <style>{`
+        @import url('@/lib/print-styles.css');
+        
         @media print {
-          /* Hide navbar and buttons */
-          nav, .no-print {
-            display: none !important;
-          }
-
-          /* Reset body styles for print */
-          body {
-            margin: 0;
-            padding: 20px;
-            background: white;
-          }
-
-          /* Clean layout for print */
-          .print-container {
-            max-width: 100%;
-            margin: 0;
-            padding: 0;
-          }
-
-          /* Farm details styling */
-          .print-farm-details {
-            margin-bottom: 30px;
-            padding: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-          }
-
-          .print-farm-details h2 {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #1f2937;
-          }
-
-          .print-farm-details .detail-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #f3f4f6;
-          }
-
-          .print-farm-details .detail-label {
-            font-weight: 600;
-            color: #6b7280;
-            font-size: 14px;
-          }
-
-          .print-farm-details .detail-value {
-            font-weight: 600;
-            color: #1f2937;
-            font-size: 14px;
-          }
-
-          /* Table styling */
-          .print-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 30px;
-          }
-
-          .print-table th {
-            background-color: #f9fafb;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            border: 1px solid #e5e7eb;
-            font-size: 14px;
-          }
-
-          .print-table th.text-right {
-            text-align: right;
-          }
-
-          .print-table td {
-            padding: 10px 12px;
-            border: 1px solid #e5e7eb;
-            font-size: 13px;
-          }
-
-          .print-table td.text-right {
-            text-align: right;
-          }
-
-          /* Summary row - horizontal layout */
-          .print-summary {
-            display: flex;
-            justify-content: space-between;
-            padding: 20px;
-            background-color: #f9fafb;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            margin-top: 20px;
-          }
-
-          .print-summary > div {
-            text-align: center;
-            flex: 1;
-          }
-
-          .print-summary .summary-label {
-            font-size: 12px;
-            color: #6b7280;
-            margin-bottom: 5px;
-          }
-
+          /* Remove all colors for black and white printing */
+          .print-table th,
+          .print-table td,
+          .print-summary > div,
+          .print-summary .summary-label,
           .print-summary .summary-value {
-            font-size: 18px;
-            font-weight: bold;
+            color: black !important;
+            background: white !important;
           }
-
-          /* Remove shadows and backgrounds */
-          * {
-            box-shadow: none !important;
-          }
-
-          /* Page break control */
-          .print-table {
-            page-break-inside: auto;
-          }
-
-          .print-table tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
+          
+          .print-table th {
+            background-color: #f0f0f0 !important;
           }
         }
       `}</style>
@@ -225,7 +127,13 @@ const FarmerLedger = () => {
       <div className="no-print">
         <Navbar />
       </div>
-
+      
+      {/* Print Header - Only visible when printing */}
+      <div className="print-header hidden print:block">
+        <h1>Farm Ledger: {farm.owner_name}</h1>
+        <p>Generated on: {new Date().toLocaleDateString('en-IN')}</p>
+      </div>
+      
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 print-container">
         <div className="flex justify-between items-start mb-8 no-print">
           <div className="flex items-center gap-4">
@@ -261,28 +169,15 @@ const FarmerLedger = () => {
           </div>
         </div>
 
-        {/* Print-only Farm Details */}
+        {/* Print-only Farm Details - Simplified for printing */}
         <div className="print-farm-details hidden print:block">
-          <h2>Farm Details</h2>
-          <div className="detail-row">
-            <span className="detail-label">Owner Name:</span>
-            <span className="detail-value">{farm.owner_name}</span>
+          <div className="print-detail-row">
+            <span className="print-detail-label">Farm ID:</span>
+            <span className="print-detail-value">{farm.farm_id}</span>
           </div>
-          <div className="detail-row">
-            <span className="detail-label">Location:</span>
-            <span className="detail-value">{farm.location}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Area:</span>
-            <span className="detail-value">{farm.area} acres</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Crop Type:</span>
-            <span className="detail-value">{farm.crop_type || 'N/A'}</span>
-          </div>
-          <div className="detail-row">
-            <span className="detail-label">Guarantor:</span>
-            <span className="detail-value">{farm.guarantor || 'N/A'}</span>
+          <div className="print-detail-row">
+            <span className="print-detail-label">Area:</span>
+            <span className="print-detail-value">{farm.area} acres</span>
           </div>
         </div>
 
@@ -295,24 +190,24 @@ const FarmerLedger = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Owner Name</label>
+                  <label className="text-sm font-medium text-muted-foreground">Farmer Name</label>
                   <p className="font-semibold">{farm.owner_name}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Location</label>
-                  <p className="text-sm">{farm.location}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Area</label>
                   <p className="font-semibold">{farm.area} acres</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Crop Type</label>
-                  <p className="font-semibold">{farm.crop_type || 'N/A'}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Contact Number</label>
+                  <p className="font-semibold">{farm.mobile || 'N/A'}</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Guarantor</label>
                   <p className="font-semibold">{farm.guarantor || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Farm ID</label>
+                  <p className="font-semibold">{farm.farm_id}</p>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-muted-foreground">Active</span>
@@ -421,23 +316,23 @@ const FarmerLedger = () => {
           </div>
         </div>
 
-        {/* Summary Row - Print Version (Horizontal) */}
-        <div className="print-summary hidden print:flex">
-          <div>
-            <div className="summary-label">Total Debit</div>
-            <div className="summary-value">₹{totalDebit.toLocaleString('en-IN')}</div>
+        {/* Summary Row - Print Version (Properly aligned in rows and columns) */}
+        <div className="print-summary hidden print:grid print:grid-cols-4 print:gap-4 print:border print:border-black print:p-4">
+          <div className="print:text-center print:border print:border-black print:p-2">
+            <div className="print:font-normal print:text-sm print:mb-1">Total Debit</div>
+            <div className="print:font-bold print:text-base">₹{totalDebit.toLocaleString('en-IN')}</div>
           </div>
-          <div>
-            <div className="summary-label">Total Credit</div>
-            <div className="summary-value">₹{totalCredit.toLocaleString('en-IN')}</div>
+          <div className="print:text-center print:border print:border-black print:p-2">
+            <div className="print:font-normal print:text-sm print:mb-1">Total Credit</div>
+            <div className="print:font-bold print:text-base">₹{totalCredit.toLocaleString('en-IN')}</div>
           </div>
-          <div>
-            <div className="summary-label">Total Vouchers</div>
-            <div className="summary-value">{totalVouchers}</div>
+          <div className="print:text-center print:border print:border-black print:p-2">
+            <div className="print:font-normal print:text-sm print:mb-1">Total Vouchers</div>
+            <div className="print:font-bold print:text-base">{totalVouchers}</div>
           </div>
-          <div>
-            <div className="summary-label">Total Bills</div>
-            <div className="summary-value">{totalBills}</div>
+          <div className="print:text-center print:border print:border-black print:p-2">
+            <div className="print:font-normal print:text-sm print:mb-1">Total Bills</div>
+            <div className="print:font-bold print:text-base">{totalBills}</div>
           </div>
         </div>
       </main>

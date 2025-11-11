@@ -16,6 +16,8 @@ const NewVoucher = () => {
   const location = useLocation();
   const editVoucher = location.state?.voucher;
   const isEditMode = !!editVoucher;
+  const [nextFarmNumber, setNextFarmNumber] = useState(1);
+  const [nextAgentNumber, setNextAgentNumber] = useState(1);
 
   const [formData, setFormData] = useState({
     voucherId: "",
@@ -33,18 +35,48 @@ const NewVoucher = () => {
   const [farms, setFarms] = useState([]);
   const [agents, setAgents] = useState([]);
 
-  // Fetch farms and agents on component mount
+  // Fetch farms, agents, and next voucher numbers when component loads
   useEffect(() => {
     const fetchData = async () => {
+      const year = new Date().getFullYear();
+      
+      // get farms from db
       const { data: farmsData } = await supabase
         .from('farms')
         .select('farm_id, owner_name')
         .eq('status', 'active');
       
+      // get agents from db
       const { data: agentsData } = await supabase
         .from('agents')
         .select('agent_id, agent_name, company_name')
         .eq('status', 'active');
+      
+      // get last farm voucher number
+      const { data: lastFarmVoucher } = await supabase
+        .from('vouchers')
+        .select('voucher_id')
+        .like('voucher_id', `VC-F-${year}-%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (lastFarmVoucher && lastFarmVoucher.length > 0) {
+        const lastNum = parseInt(lastFarmVoucher[0].voucher_id.split('-')[3]) || 0;
+        setNextFarmNumber(lastNum + 1);
+      }
+      
+      // get last agent voucher number
+      const { data: lastAgentVoucher } = await supabase
+        .from('vouchers')
+        .select('voucher_id')
+        .like('voucher_id', `VC-A-${year}-%`)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (lastAgentVoucher && lastAgentVoucher.length > 0) {
+        const lastNum = parseInt(lastAgentVoucher[0].voucher_id.split('-')[3]) || 0;
+        setNextAgentNumber(lastNum + 1);
+      }
       
       setFarms(farmsData || []);
       setAgents(agentsData || []);
@@ -53,7 +85,7 @@ const NewVoucher = () => {
     fetchData();
   }, []);
 
-  // Populate form if editing
+  // load form if editing
   useEffect(() => {
     if (editVoucher) {
       setFormData({
@@ -70,20 +102,20 @@ const NewVoucher = () => {
     }
   }, [editVoucher]);
 
-  const generateVoucherId = (linkedTo: string) => {
+  const generateVoucherId = (linkedTo: string, num: number) => {
     const year = new Date().getFullYear();
-    const serial = String(Math.floor(Math.random() * 1000) + 1).padStart(3, '0');
     const prefix = linkedTo === "farm" ? "VC-F" : "VC-A";
-    return `${prefix}-${year}-${serial}`;
+    return `${prefix}-${year}-${String(num).padStart(3, '0')}`;
   };
 
   const handleLinkedToChange = (value: string) => {
+    const num = value === "farm" ? nextFarmNumber : nextAgentNumber;
     setFormData(prev => ({
       ...prev,
       linkedTo: value,
       linkedId: "",
       type: value === "farm" ? "expense" : "income",
-      voucherId: generateVoucherId(value)
+      voucherId: generateVoucherId(value, num)
     }));
   };
 
@@ -92,7 +124,7 @@ const NewVoucher = () => {
     
     try {
       if (isEditMode) {
-        // Update existing voucher
+        // update existing voucher
         const { error } = await supabase
           .from('vouchers')
           .update({
@@ -110,13 +142,13 @@ const NewVoucher = () => {
         if (error) throw error;
         
         toast({
-          title: "Voucher Updated Successfully",
+          title: "Success!",
           description: `Voucher ${formData.voucherId} has been updated`,
         });
         
         navigate('/voucher-list');
       } else {
-        // Create new voucher
+        // create new voucher
         const { error } = await supabase
           .from('vouchers')
           .insert([{
@@ -134,11 +166,18 @@ const NewVoucher = () => {
         if (error) throw error;
         
         toast({
-          title: "Voucher Created Successfully",
-          description: `Voucher ${formData.voucherId} has been created`,
+          title: "Success!",
+          description: `Voucher ${formData.voucherId} created`,
         });
         
-        // Reset form instead of navigating
+        // increment the appropriate counter
+        if (formData.linkedTo === "farm") {
+          setNextFarmNumber(prev => prev + 1);
+        } else {
+          setNextAgentNumber(prev => prev + 1);
+        }
+        
+        // reset form
         setFormData({
           voucherId: "",
           linkedTo: "",

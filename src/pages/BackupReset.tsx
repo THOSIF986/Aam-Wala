@@ -318,9 +318,11 @@ const BackupReset = () => {
                     accept=".json"
                     className="file:bg-warning file:text-warning-foreground"
                     onChange={(e) => {
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       const file = e.target.files?.[0];
                       if (file) {
                         // Store file reference for restore
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         (window as any).selectedBackupFile = file;
                       }
                     }}
@@ -331,7 +333,8 @@ const BackupReset = () => {
                     <Button 
                       variant="outline" 
                       className="w-full border-warning text-warning hover:bg-warning/10"
-                      disabled={!(window as any).selectedBackupFile}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    disabled={!(window as any).selectedBackupFile}
                     >
                       <FileUp className="h-4 w-4 mr-2" />
                       Restore from File
@@ -348,7 +351,8 @@ const BackupReset = () => {
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
                       <AlertDialogAction onClick={() => {
-                        const file = (window as any).selectedBackupFile;
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      const file = (window as any).selectedBackupFile;
                         if (file) {
                           handleRestoreBackup(file);
                         }

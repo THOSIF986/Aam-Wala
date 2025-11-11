@@ -24,21 +24,13 @@ const STORAGE_KEYS = {
   CURRENT_USER: 'aam_wala_current_user',
 };
 
-const initializeDefaultAdmin = () => {
+// Initialize empty users list if none exists
+const initializeUsers = () => {
   const existingUsers = localStorage.getItem(STORAGE_KEYS.USERS);
   if (!existingUsers) {
-    const defaultAdmin: User = {
-      id: 'Aam-admin-1',
-      fullName: 'Administrator',
-      role: 'admin',
-    };
-    const users = [defaultAdmin];
+    const users: User[] = [];
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-
-    const passwords: Record<string, string> = {
-      'Aam-admin-1': 'AamWala$Cloud#2025!',
-    };
-    localStorage.setItem('aam_wala_passwords', JSON.stringify(passwords));
+    localStorage.setItem('aam_wala_passwords', JSON.stringify({}));
   }
 };
 
@@ -46,8 +38,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    initializeDefaultAdmin();
+    initializeUsers();
 
+    // check if user already logged in
     const savedUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     if (savedUser) {
       setCurrentUser(JSON.parse(savedUser));
@@ -105,33 +98,41 @@ export const getAllUsers = (): User[] => {
 };
 
 export const createWriter = (fullName: string, phone: string, password: string, createdBy: string): User => {
-  const users = getAllUsers();
-  const writerCount = users.filter(u => u.id.startsWith('Aam-Wrt-')).length;
-  const newWriterId = `Aam-Wrt-${writerCount + 1}`;
+  try {
+    const users = getAllUsers();
+    const writerCount = users.filter(u => u.id.startsWith('Aam-Wrt-')).length;
+    const newWriterId = `Aam-Wrt-${writerCount + 1}`;
 
-  const newWriter: User = {
-    id: newWriterId,
-    fullName,
-    phone,
-    role: 'writer',
-    createdBy,
-  };
+    const newWriter: User = {
+      id: newWriterId,
+      fullName,
+      phone,
+      role: 'writer',
+      createdBy,
+    };
 
-  users.push(newWriter);
-  localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+    // add to users list
+    users.push(newWriter);
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
 
-  const passwordsData = localStorage.getItem('aam_wala_passwords');
-  const passwords: Record<string, string> = passwordsData ? JSON.parse(passwordsData) : {};
-  passwords[newWriterId] = password;
-  localStorage.setItem('aam_wala_passwords', JSON.stringify(passwords));
+    // save password separately
+    const passwordsData = localStorage.getItem('aam_wala_passwords');
+    const passwords: Record<string, string> = passwordsData ? JSON.parse(passwordsData) : {};
+    passwords[newWriterId] = password;
+    localStorage.setItem('aam_wala_passwords', JSON.stringify(passwords));
 
-  return newWriter;
+    return newWriter;
+  } catch (error) {
+    console.error('Error creating writer:', error);
+    throw error;
+  }
 };
 
 export const deleteWriter = (userId: string): boolean => {
   const users = getAllUsers();
   const userToDelete = users.find(u => u.id === userId);
 
+  // only delete if user is writer
   if (!userToDelete || userToDelete.role !== 'writer') {
     return false;
   }
@@ -139,6 +140,7 @@ export const deleteWriter = (userId: string): boolean => {
   const updatedUsers = users.filter(u => u.id !== userId);
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(updatedUsers));
 
+  // also remove password
   const passwordsData = localStorage.getItem('aam_wala_passwords');
   if (passwordsData) {
     const passwords: Record<string, string> = JSON.parse(passwordsData);
