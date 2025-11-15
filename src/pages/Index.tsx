@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from "@/components/Layout/Navbar";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 import {
   Tractor,
   Users,
@@ -20,7 +21,15 @@ import {
 
 const Index = () => {
   const { companySettings } = useCompanySettings();
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
   
   // menu items for dashboard
   const menuItems = [
@@ -108,7 +117,7 @@ const Index = () => {
       title: "Reports",
       description: "Financial & business reports",
       icon: TrendingUp,
-      link: "/reports",
+      link: "/Reports",
       color: "bg-gradient-secondary",
       role: ["admin"]
     },
@@ -135,6 +144,15 @@ const Index = () => {
     item.role.includes(currentUser?.role || 'writer')
   );
 
+  // Show loading or redirecting state while checking authentication
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background font-poppins flex items-center justify-center">
+        <p className="text-foreground">Redirecting to login...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background font-poppins">
       <Navbar />
@@ -143,7 +161,7 @@ const Index = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-foreground">
-            {companySettings.companyName}
+            {companySettings.companyName || "Aam Wala Business Management"}
           </h1>
         </div>
 

@@ -28,9 +28,15 @@ const STORAGE_KEYS = {
 const initializeUsers = () => {
   const existingUsers = localStorage.getItem(STORAGE_KEYS.USERS);
   if (!existingUsers) {
-    const users: User[] = [];
+    const users: User[] = [
+      {
+        id: 'admin',
+        fullName: 'Administrator',
+        role: 'admin',
+      }
+    ];
     localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-    localStorage.setItem('aam_wala_passwords', JSON.stringify({}));
+    localStorage.setItem('aam_wala_passwords', JSON.stringify({ admin: 'admin123' }));
   }
 };
 
